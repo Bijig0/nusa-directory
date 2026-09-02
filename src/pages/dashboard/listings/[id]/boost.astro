@@ -1,0 +1,29 @@
+---
+import Dashboard from '../../../../layouts/Dashboard.astro';
+import BoostButtons from '../../../../components/islands/Checkout/BoostButtons';
+import { translate } from '../../../../domain/i18n';
+import { formatIdr } from '../../../../domain/money';
+import { ownedListing } from '../../../../services/listing.service';
+import { activeProducts } from '../../../../infra/db/repos/products';
+import { isVip, isFeatured } from '../../../../domain/listing';
+const { locale, dict, deps, user, isAdmin } = Astro.locals;
+const t = translate(dict);
+const r = await ownedListing(deps, user!, Astro.params.id ?? '', isAdmin);
+if (!r.ok) return new Response(null, { status: r.error.kind === 'forbidden' ? 403 : 404 });
+const L = r.value;
+const now = deps.clock.now();
+const products = (await activeProducts(deps.db)).filter((p) => p.kind === 'boost');
+const offers = products.map((p) => ({ code: p.code, name: locale === 'en' ? p.nameEn : p.nameId, description: t(`boost.${p.code}.desc`), priceLabel: formatIdr(p.priceIdr, locale) }));
+const labels = { buy: t('boost.buy'), done: t('boost.done'), back: t('boost.back'), paymentUnavailable: t('packs.unavailable'), paymentFailed: t('packs.failed'), waiting: t('packs.waiting') };
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+---
+<Dashboard title={t('boost.title')} active="listings">
+  <p class="mb-1 text-sm text-zinc-600 dark:text-zinc-400">{t('boost.subtitle')}</p>
+  <p class="mb-4 text-xs text-zinc-500">
+    {t('boost.current')}: {isVip(L, now) ? t('boost.vipUntil', { date: fmt(L.vipUntil!) }) : isFeatured(L, now) ? t('boost.featuredUntil', { date: fmt(L.featuredUntil!) }) : t('boost.none')}
+  </p>
+  <BoostButtons client:only="preact" listingId={L.id} offers={offers} labels={labels}>
+    <div slot="fallback" class="card p-6 text-sm text-zinc-500">…</div>
+  </BoostButtons>
+  <p class="mt-4 text-xs text-zinc-400">{t('packs.secure')}</p>
+</Dashboard>

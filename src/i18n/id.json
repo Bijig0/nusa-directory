@@ -295,5 +295,17 @@
   "orders.status.paid": "Lunas",
   "orders.status.failed": "Gagal",
   "orders.status.expired": "Kedaluwarsa",
-  "orders.status.refunded": "Dikembalikan"
+  "orders.status.refunded": "Dikembalikan",
+  "boost.title": "Promosikan iklan",
+  "boost.subtitle": "Naikkan iklan ke atas daftar atau tampilkan sebagai Unggulan/VIP.",
+  "boost.bump.desc": "Iklan langsung naik ke urutan teratas sekali.",
+  "boost.featured_7d.desc": "Bingkai emas + selalu di atas iklan biasa selama 7 hari. Termasuk bump.",
+  "boost.vip_30d.desc": "Semua manfaat Unggulan selama 30 hari + tampil di carousel VIP beranda & kota + 12 foto. Termasuk bump.",
+  "boost.buy": "Beli",
+  "boost.current": "Status saat ini",
+  "boost.featuredUntil": "Unggulan sampai {date}",
+  "boost.vipUntil": "VIP sampai {date}",
+  "boost.none": "Tidak ada promosi aktif",
+  "boost.done": "Promosi aktif! Iklan Anda sudah dinaikkan.",
+  "boost.back": "Kembali ke iklan saya"
 }

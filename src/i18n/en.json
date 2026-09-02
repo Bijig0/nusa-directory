@@ -295,5 +295,17 @@
   "orders.status.paid": "Paid",
   "orders.status.failed": "Failed",
   "orders.status.expired": "Expired",
-  "orders.status.refunded": "Refunded"
+  "orders.status.refunded": "Refunded",
+  "boost.title": "Promote your ad",
+  "boost.subtitle": "Bump your ad to the top or show it as Featured/VIP.",
+  "boost.bump.desc": "Your ad jumps to the top of the list once.",
+  "boost.featured_7d.desc": "Gold frame + always above regular ads for 7 days. Includes a bump.",
+  "boost.vip_30d.desc": "All Featured benefits for 30 days + the VIP carousel on the home and city pages + 12 photos. Includes a bump.",
+  "boost.buy": "Buy",
+  "boost.current": "Current status",
+  "boost.featuredUntil": "Featured until {date}",
+  "boost.vipUntil": "VIP until {date}",
+  "boost.none": "No active promotion",
+  "boost.done": "Promotion active! Your ad has been bumped.",
+  "boost.back": "Back to my ads"
 }
