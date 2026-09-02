@@ -6,7 +6,8 @@ import { newId, newOrderId } from '../domain/ids';
 import { applyBoost, ORDER_TTL_MINUTES } from '../domain/boost';
 import { isMidtransNotification, mapTransactionStatus, verifySignature, type MidtransNotification } from '../domain/midtrans';
 import { midtransClient } from '../infra/payments/midtrans';
-import { findProductByCode } from '../infra/db/repos/products';
+import { sql } from 'drizzle-orm';
+import { findProductByCode, activeProducts } from '../infra/db/repos/products';
 import { findOrder, insertOrder, recordPaymentEvent, updateOrder } from '../infra/db/repos/orders';
 import { addLedger, creditWallet } from '../infra/db/repos/wallets';
 import { findListingById } from '../infra/db/repos/listings';
@@ -28,7 +29,7 @@ export interface CreatedOrder {
 const gateway = (deps: Deps) => {
   const { MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_ENV } = deps.env;
   if (!MIDTRANS_SERVER_KEY || !MIDTRANS_CLIENT_KEY) return undefined;
-  return midtransClient(MIDTRANS_ENV === 'production' ? 'production' : 'sandbox', MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY);
+  return midtransClient((MIDTRANS_ENV as string) === 'production' ? 'production' : 'sandbox', MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY);
 };
 
 const isPlaceholderKey = (key: string | undefined): boolean => !key || /xxxx/i.test(key);
@@ -85,7 +86,7 @@ export const createOrder = async (deps: Deps, p: Principal, productCode: Product
 export const fulfillOrder = async (deps: Deps, orderId: string, payment: { transactionId: string; paymentType: string }): Promise<'fulfilled' | 'already' | 'not_found'> => {
   const now = deps.clock.now();
   const claimed = await deps.db.run(
-    (await import('drizzle-orm')).sql`UPDATE orders SET status = 'paid', paid_at = ${now.getTime()}, midtrans_transaction_id = ${payment.transactionId}, payment_type = ${payment.paymentType}, updated_at = ${now.getTime()} WHERE id = ${orderId} AND status = 'pending'`,
+    sql`UPDATE orders SET status = 'paid', paid_at = ${now.getTime()}, midtrans_transaction_id = ${payment.transactionId}, payment_type = ${payment.paymentType}, updated_at = ${now.getTime()} WHERE id = ${orderId} AND status = 'pending'`,
   );
   if (Number(claimed.meta.changes ?? 0) !== 1) return (await findOrder(deps.db, orderId)) ? 'already' : 'not_found';
   const order = (await findOrder(deps.db, orderId))!;
@@ -148,6 +149,6 @@ export const orderStatusFor = async (deps: Deps, p: Principal, orderId: string):
   return { status: order.status };
 };
 
-export const boostProducts = async (deps: Deps) => (await import('../infra/db/repos/products')).activeProducts(deps.db).then((rows) => rows.filter((r) => r.kind === 'boost'));
+export const boostProducts = async (deps: Deps) => (await activeProducts(deps.db)).filter((r) => r.kind === 'boost');
 
 export const siteName = site.name;

@@ -3,6 +3,7 @@ import { site } from '../../site.config';
 import { loadCityPage, loadCategoryPage, type CityPage, type CategoryPage } from '../services/browse.service';
 import { loadListingPage, type ListingPageResult } from '../services/listing-page.service';
 import { parseListingSegment } from '../domain/slug';
+import { getEntry, type CollectionEntry } from 'astro:content';
 
 /**
  * Route resolvers run in page frontmatter (before streaming starts) so they can
@@ -38,4 +39,16 @@ export const resolveSegmentRoute = async (astro: AstroGlobal): Promise<SegmentRo
   if (result.kind === 'redirect') return astro.redirect(result.to, 301);
   if (result.kind === 'gone') astro.response.status = 410;
   return { kind: 'listing', result };
+};
+
+/** Content entries are keyed `<locale>/<slug>`; missing entries 404 from the route file. */
+export const resolveBlogEntry = async (astro: AstroGlobal): Promise<{ entry: CollectionEntry<'blog'>; slug: string } | Response> => {
+  const slug = astro.params.slug ?? '';
+  const entry = await getEntry('blog', `${astro.locals.locale}/${slug}`);
+  return entry ? { entry, slug } : notFound();
+};
+
+export const resolvePageEntry = async (astro: AstroGlobal, key: string): Promise<CollectionEntry<'pages'> | Response> => {
+  const entry = await getEntry('pages', `${astro.locals.locale}/${key}`);
+  return entry ?? notFound();
 };

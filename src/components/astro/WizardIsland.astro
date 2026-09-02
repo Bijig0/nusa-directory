@@ -26,7 +26,7 @@ const initial: WizardData = listing
       rate1h: listing.rate1h ? String(listing.rate1h) : '', rate2h: listing.rate2h ? String(listing.rate2h) : '', rateOvernight: listing.rateOvernight ? String(listing.rateOvernight) : '',
       incall: listing.incall, outcall: listing.outcall, availability: listing.availability ?? { days: [0, 1, 2, 3, 4, 5, 6], from: '10:00', to: '02:00', allDay: false },
       phone: listing.phoneE164, whatsapp: listing.whatsappE164 ?? '', telegram: listing.telegramHandle ?? '',
-    }
+    } as WizardData
   : {
       categoryId: geo.categories[0]?.id ?? '', cityId: geo.cities.find((c) => c.slug === site.defaultCitySlug)?.id ?? geo.cities[0]?.id ?? '', areaId: '', title: '', description: '', age: '', gender: 'female',
       nationality: 'Indonesia', ethnicity: '', heightCm: '', bodyType: '', languages: ['id'], serviceIds: [], rate1h: '', rate2h: '', rateOvernight: '', incall: false, outcall: true,

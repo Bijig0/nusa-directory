@@ -9,7 +9,7 @@ const t = translate(dict);
 const mine = await myListings(deps, user!);
 const groups = await Promise.all(mine.map(async (l) => ({ listing: l, reviews: await approvedReviews(deps.db, l.id) })));
 ---
-<Dashboard title={t('listing.reviews')} active="listings">
+<Dashboard title={t('listing.reviews')} active="reviews">
   {groups.every((g) => g.reviews.length === 0) ? <p class="card p-6 text-sm text-zinc-500">{t('listing.noReviews')}</p> : groups.filter((g) => g.reviews.length).map(({ listing, reviews }) => (
     <section class="card mb-3 p-4">
       <h2 class="font-semibold">{listing.title}</h2>

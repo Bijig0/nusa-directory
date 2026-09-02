@@ -1,0 +1,7 @@
+---
+import BlogPostView from '../../../views/BlogPostView.astro';
+import { resolveBlogEntry } from '../../../views/routes';
+const r = await resolveBlogEntry(Astro);
+if (r instanceof Response) return r;
+---
+<BlogPostView entry={r.entry} slug={r.slug} />

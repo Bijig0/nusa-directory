@@ -28,7 +28,7 @@ const googleEnabled = Boolean(deps.env.GOOGLE_CLIENT_ID);
           </a>
         </>
       )}
-      <p class="mt-5 text-center text-xs text-zinc-500">{t('auth.terms')} <a href={localizedPath(locale, locale === 'en' ? '/terms/' : '/syarat/')} class="underline">→</a></p>
+      <p class="mt-5 text-center text-xs text-zinc-500">{t('auth.terms')} <a href={localizedPath(locale, '/syarat/')} class="underline">→</a></p>
     </div>
   </div>
 </Base>

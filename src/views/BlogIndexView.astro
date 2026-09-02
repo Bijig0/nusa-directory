@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { translate, localizedPath } from '../domain/i18n';
+import { site } from '../../site.config';
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const posts = (await getCollection('blog', (p) => p.id.startsWith(`${locale}/`))).sort((a, b) => b.data.published.getTime() - a.data.published.getTime());
+const slugOf = (id: string) => id.slice(3);
+const title = locale === 'en' ? `Guides & Articles | ${site.name}` : `Panduan & Artikel | ${site.name}`;
+const description = locale === 'en' ? 'City guides, safety tips and how-tos for finding companions and massage services in Indonesia.' : 'Panduan kota, tips aman, dan cara mencari pendamping serta layanan pijat di Indonesia.';
+---
+<Base title={title} description={description} path="/blog/">
+  <div class="container-page py-8">
+    <h1 class="text-3xl font-black tracking-tight">{t('nav.blog')}</h1>
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {posts.map((p) => (
+        <li class="card p-4">
+          <a href={localizedPath(locale, `/blog/${slugOf(p.id)}/`)} class="font-semibold hover:text-brand-600">{p.data.title}</a>
+          <p class="mt-1 text-sm text-zinc-500">{p.data.description}</p>
+          <p class="mt-2 text-xs text-zinc-400">{p.data.published.toISOString().slice(0, 10)}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>

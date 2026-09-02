@@ -8,9 +8,8 @@ const t = translate(dict);
 const cities = citySeeds.slice(0, 12);
 const cityName = (c: (typeof citySeeds)[number]) => (locale === 'en' && c.nameEn) || c.nameId;
 const catName = (c: (typeof categorySeeds)[number]) => (locale === 'en' ? c.nameEn : c.nameId);
-const legal = locale === 'en'
-  ? [['/terms/', t('footer.terms')], ['/privacy/', t('footer.privacy')], ['/content-policy/', t('footer.content')], ['/anti-trafficking/', t('footer.antitrafficking')]]
-  : [['/syarat/', t('footer.terms')], ['/privasi/', t('footer.privacy')], ['/kebijakan-konten/', t('footer.content')], ['/anti-perdagangan-manusia/', t('footer.antitrafficking')]];
+// Indonesian slugs; localizedPath translates them for English.
+const legal = [['/syarat/', t('footer.terms')], ['/privasi/', t('footer.privacy')], ['/kebijakan-konten/', t('footer.content')], ['/anti-perdagangan-manusia/', t('footer.antitrafficking')]];
 ---
 <footer class="mt-16 border-t border-zinc-200 bg-white text-sm dark:border-zinc-800 dark:bg-zinc-900">
   <div class="container-page grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -50,6 +49,6 @@ const legal = locale === 'en'
     </div>
   </div>
   <div class="border-t border-zinc-200 py-4 text-center text-xs text-zinc-500 dark:border-zinc-800">
-    {t('footer.copyright', { year: new Date().getFullYear(), brand: site.name })}
+    {t('footer.copyright', { year: new Date().getFullYear(), brand: site.name })} · <a href={`mailto:${site.supportEmail}`} class="hover:text-brand-600">{site.supportEmail}</a>
   </div>
 </footer>

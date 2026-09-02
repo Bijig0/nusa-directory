@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/astro/Breadcrumbs.astro';
+import { render, type CollectionEntry } from 'astro:content';
+import { translate, localizedPath } from '../domain/i18n';
+import { article, breadcrumbList } from '../domain/seo';
+import { site } from '../../site.config';
+interface Props { entry: CollectionEntry<'blog'>; slug: string }
+const { entry, slug } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const { Content } = await render(entry);
+const origin = (Astro.site ?? new URL(site.url)).origin;
+const url = `${origin}${localizedPath(locale, `/blog/${slug}/`)}`;
+const crumbs = [{ name: t('breadcrumb.home'), url: localizedPath(locale, '/') }, { name: t('nav.blog'), url: localizedPath(locale, '/blog/') }, { name: entry.data.title, url: localizedPath(locale, `/blog/${slug}/`) }];
+const jsonLd = [
+  breadcrumbList(crumbs.map((c) => ({ ...c, url: `${origin}${c.url}` }))),
+  article({ headline: entry.data.title, description: entry.data.description, url, datePublished: entry.data.published, dateModified: entry.data.updated ?? entry.data.published, brand: site.name, locale }),
+];
+---
+<Base title={`${entry.data.title} | ${site.name}`} description={entry.data.description} path={`/blog/${slug}/`} ogType="article" jsonLd={jsonLd}>
+  <article class="container-page max-w-3xl py-8">
+    <Breadcrumbs crumbs={crumbs} />
+    <h1 class="mt-3 text-3xl font-black tracking-tight">{entry.data.title}</h1>
+    <p class="mt-1 text-xs text-zinc-400">{entry.data.published.toISOString().slice(0, 10)}{entry.data.city ? ` · ${entry.data.city}` : ''}</p>
+    <div class="prose-site mt-6"><Content /></div>
+    {entry.data.city && <p class="mt-8"><a href={localizedPath(locale, `/${entry.data.city}/`)} class="btn-primary">→ {entry.data.city}</a></p>}
+  </article>
+</Base>

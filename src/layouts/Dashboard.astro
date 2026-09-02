@@ -3,13 +3,14 @@ import Base from './Base.astro';
 import { translate } from '../domain/i18n';
 import { site } from '../../site.config';
 
-interface Props { title: string; active: 'listings' | 'new' | 'orders' | 'account' | 'stats' }
+interface Props { title: string; active: 'listings' | 'new' | 'orders' | 'account' | 'stats' | 'reviews' }
 const { title, active } = Astro.props;
 const { dict, user, isAdmin } = Astro.locals;
 const t = translate(dict);
 const nav = [
   ['listings', '/dashboard/', t('dash.listings')],
   ['new', '/dashboard/listings/new/', t('dash.newListing')],
+  ['reviews', '/dashboard/reviews/', t('listing.reviews')],
   ['orders', '/dashboard/orders/', t('dash.orders')],
   ['account', '/dashboard/account/', t('dash.account')],
 ] as const;

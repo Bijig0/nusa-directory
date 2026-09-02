@@ -1,4 +1,5 @@
 import type { Deps } from '../infra/env';
+import { sql } from 'drizzle-orm';
 import { newId } from '../domain/ids';
 import { applyBoost } from '../domain/boost';
 import { findListingById } from '../infra/db/repos/listings';
@@ -13,7 +14,7 @@ import type { Listing, ProductCode } from '../infra/db/schema';
 
 export type ListingAdminAction = 'approve' | 'hide' | 'unhide' | 'remove' | 'verify' | 'unverify' | 'grant_featured' | 'grant_vip';
 
-const patchFor = (action: ListingAdminAction, l: Listing, now: Date): Partial<Listing> | undefined => {
+const patchFor = (action: ListingAdminAction): Partial<Listing> | undefined => {
   switch (action) {
     case 'approve': return { moderation: 'approved', editedAt: null };
     case 'hide': return { moderation: 'hidden' };
@@ -37,7 +38,7 @@ export const adminListingAction = async (deps: Deps, adminId: string, listingId:
       await insertBoost(deps.db, { id: newId(now.getTime()), listingId: l.id, orderId: null, type: patch.type, startsAt: now, endsAt: patch.endsAt, createdAt: now });
     }
   } else {
-    const patch = patchFor(action, l, now);
+    const patch = patchFor(action);
     if (!patch) return l;
     await updateListing(deps.db, l.id, { ...patch, updatedAt: now });
     if (action === 'approve' || action === 'remove' || action === 'hide') await resolveReportsForListing(deps.db, l.id, adminId, now);
@@ -53,7 +54,7 @@ export const adminUserAction = async (deps: Deps, adminId: string, userId: strin
   if (action === 'ban') {
     await banUser(deps.db, userId, reason ?? 'admin');
     await deleteSessionsOfUser(deps.db, userId);
-    await deps.db.run((await import('drizzle-orm')).sql`UPDATE listings SET moderation = 'hidden', updated_at = ${now.getTime()} WHERE owner_user_id = ${userId} AND status = 'active'`);
+    await deps.db.run(sql`UPDATE listings SET moderation = 'hidden', updated_at = ${now.getTime()} WHERE owner_user_id = ${userId} AND status = 'active'`);
   } else if (action === 'unban') {
     await unbanUser(deps.db, userId);
   } else {

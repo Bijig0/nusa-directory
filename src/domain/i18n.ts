@@ -24,10 +24,21 @@ export const translate =
 export const localePrefix = (locale: Locale): string =>
   locale === defaultLocale ? '' : `/${locale}`;
 
+/** Static pages whose slug is translated per locale (key = Indonesian slug). */
+const TRANSLATED_SLUGS: Record<string, Partial<Record<Locale, string>>> = {
+  syarat: { en: 'terms' },
+  privasi: { en: 'privacy' },
+  'kebijakan-konten': { en: 'content-policy' },
+  'anti-perdagangan-manusia': { en: 'anti-trafficking' },
+};
+
 /** Builds the same path for a target locale. `path` must be locale-less (e.g. '/batam/escorts/'). */
 export const localizedPath = (locale: Locale, path: string): string => {
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  return `${localePrefix(locale)}${normalized}`;
+  const segment = normalized.split('/')[1] ?? '';
+  const translated = TRANSLATED_SLUGS[segment]?.[locale];
+  const localized = translated ? normalized.replace(`/${segment}/`, `/${translated}/`) : normalized;
+  return `${localePrefix(locale)}${localized}`;
 };
 
 /** Strips a leading locale prefix from a pathname, returning the locale and the locale-less path. */

@@ -71,7 +71,7 @@ export default function PostingWizard({ listingId: initialId, initial, initialPh
     setBusy(true);
     setError(null);
     setFields({});
-    const { data: res, error } = await actions.listings.save({ id: listingId ?? undefined, data });
+    const { data: res, error } = await actions.listings.save({ id: listingId ?? undefined, data: data as unknown as Record<string, unknown> });
     setBusy(false);
     if (error || !res) {
       setError(errText(error?.message));

@@ -1,4 +1,5 @@
 import { actions } from 'astro:actions';
+import type { ProductCode } from '../../../infra/db/schema';
 
 export interface CheckoutLabels {
   paymentUnavailable: string;
@@ -48,7 +49,7 @@ export type CheckoutOutcome = 'paid' | 'closed' | string;
  * confirmed paid by the server (webhook) or the popup is closed.
  */
 export const startCheckout = async (p: { productCode: string; listingId?: string; labels: CheckoutLabels }): Promise<CheckoutOutcome> => {
-  const { data, error } = await actions.checkout.createOrder({ productCode: p.productCode, listingId: p.listingId });
+  const { data, error } = await actions.checkout.createOrder({ productCode: p.productCode as ProductCode, listingId: p.listingId });
   if (error || !data) return error?.code === 'BAD_REQUEST' ? p.labels.paymentUnavailable : p.labels.paymentFailed;
   if (data.devAutoPaid) return 'paid';
   try {

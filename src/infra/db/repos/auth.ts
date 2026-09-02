@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../client';
-import { identities, otpCodes, sessions, users, wallets, devices, reveals, favorites, reviews, walletLedger, type Identity, type Session, type User } from '../schema';
+import { identities, otpCodes, sessions, users, wallets, devices, walletLedger, type Identity, type Session, type User } from '../schema';
 import { newId } from '../../../domain/ids';
 
 export const findUser = (db: Db, id: string): Promise<User | undefined> => db.select().from(users).where(eq(users.id, id)).get();
@@ -64,14 +64,15 @@ export const mergeDeviceIntoUser = async (db: Db, deviceId: string, deviceWallet
   }
   const balance = deviceWallet.balance;
   const ts = now.getTime();
+  // Copying reveals/favorites/reviews is idempotent (OR IGNORE / NOT EXISTS), so it runs as plain statements;
+  // the balance transfer below is the part that must be atomic.
+  await db.run(sql`INSERT OR IGNORE INTO reveals (id, wallet_id, listing_id, kind, created_at)
+    SELECT lower(hex(randomblob(13))), ${user.walletId}, listing_id, 'merged', created_at FROM reveals WHERE wallet_id = ${deviceWalletId}`);
+  await db.run(sql`INSERT OR IGNORE INTO favorites (wallet_id, listing_id, created_at)
+    SELECT ${user.walletId}, listing_id, created_at FROM favorites WHERE wallet_id = ${deviceWalletId}`);
+  await db.run(sql`UPDATE reviews SET wallet_id = ${user.walletId} WHERE wallet_id = ${deviceWalletId}
+    AND NOT EXISTS (SELECT 1 FROM reviews r2 WHERE r2.listing_id = reviews.listing_id AND r2.wallet_id = ${user.walletId})`);
   await db.batch([
-    db.insert(reveals)
-      .select(db.select({ id: sql<string>`lower(hex(randomblob(13)))`, walletId: sql<string>`${user.walletId}`, listingId: reveals.listingId, kind: sql<string>`'merged'`, createdAt: reveals.createdAt }).from(reveals).where(eq(reveals.walletId, deviceWalletId)))
-      .onConflictDoNothing(),
-    db.insert(favorites)
-      .select(db.select({ walletId: sql<string>`${user.walletId}`, listingId: favorites.listingId, createdAt: favorites.createdAt }).from(favorites).where(eq(favorites.walletId, deviceWalletId)))
-      .onConflictDoNothing(),
-    db.update(reviews).set({ walletId: user.walletId }).where(and(eq(reviews.walletId, deviceWalletId), sql`NOT EXISTS (SELECT 1 FROM reviews r2 WHERE r2.listing_id = ${reviews.listingId} AND r2.wallet_id = ${user.walletId})`)),
     db.update(wallets).set({ balance: sql`${wallets.balance} + ${balance}`, updatedAt: now }).where(eq(wallets.id, user.walletId)),
     ...(balance > 0
       ? [
@@ -88,4 +89,3 @@ export const banUser = (db: Db, userId: string, reason: string) => db.update(use
 export const unbanUser = (db: Db, userId: string) => db.update(users).set({ status: 'active', bannedReason: null }).where(eq(users.id, userId));
 export const setDisplayName = (db: Db, userId: string, name: string | null) => db.update(users).set({ displayName: name }).where(eq(users.id, userId));
 
-export { reveals, favorites, reviews, walletLedger };

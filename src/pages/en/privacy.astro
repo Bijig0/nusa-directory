@@ -1,0 +1,7 @@
+---
+import StaticPageView from '../../views/StaticPageView.astro';
+import { resolvePageEntry } from '../../views/routes';
+const entry = await resolvePageEntry(Astro, 'privacy');
+if (entry instanceof Response) return entry;
+---
+<StaticPageView entry={entry} path="/privasi/" />

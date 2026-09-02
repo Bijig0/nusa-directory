@@ -70,9 +70,26 @@ const guards = defineMiddleware((context, next) => {
 });
 
 const PRIVATE_PREFIXES = ['/admin', '/dashboard', '/auth', '/api', '/_actions', '/favorites'];
+/** Midtrans Snap popup + our own origin. Inline scripts are Astro's hydration/islands bootstraps. */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://app.sandbox.midtrans.com https://app.midtrans.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com",
+  "frame-src https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com https://accounts.google.com",
+  "form-action 'self' https://accounts.google.com",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+  'upgrade-insecure-requests',
+].join('; ');
 const securityHeaders = defineMiddleware(async (context, next) => {
   const response = await next();
   const headers = response.headers;
+  const isHtmlResponse = (headers.get('Content-Type') ?? '').includes('text/html');
+  if (isHtmlResponse && !headers.has('Content-Security-Policy')) headers.set('Content-Security-Policy', context.locals.deps.isDev ? CSP.replace('upgrade-insecure-requests', '').replace(/;\s*$/, '') : CSP);
+  if (!headers.has('Permissions-Policy')) headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   const isHtml = (headers.get('Content-Type') ?? '').includes('text/html');
   const isPrivatePath = PRIVATE_PREFIXES.some((p) => context.url.pathname.startsWith(p));
   if (context.request.method === 'GET' && isHtml && response.status === 200 && !isPrivatePath && !context.cookies.has('sid') && !headers.has('Cache-Control')) {

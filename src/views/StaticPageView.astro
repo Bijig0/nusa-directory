@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { render, type CollectionEntry } from 'astro:content';
+import { site } from '../../site.config';
+interface Props { entry: CollectionEntry<'pages'>; path: string }
+const { entry, path } = Astro.props;
+const { locale } = Astro.locals;
+const { Content } = await render(entry);
+---
+<Base title={`${entry.data.title} | ${site.name}`} description={entry.data.description} path={path} noAgeGate>
+  <article class="container-page max-w-3xl py-8">
+    <h1 class="text-3xl font-black tracking-tight">{entry.data.title}</h1>
+    <p class="mt-1 text-xs text-zinc-400">{locale === 'en' ? 'Last updated' : 'Diperbarui'}: {entry.data.updated.toISOString().slice(0, 10)}</p>
+    <div class="prose-site mt-6"><Content /></div>
+  </article>
+</Base>
