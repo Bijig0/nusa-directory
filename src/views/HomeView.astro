@@ -1,0 +1,49 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../../site.config';
+import { translate, localizedPath } from '../domain/i18n';
+import { citySeeds } from '../data/cities';
+import { categorySeeds } from '../data/categories';
+
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const cityName = (c: (typeof citySeeds)[number]) => (locale === 'en' && c.nameEn) || c.nameId;
+const catName = (c: (typeof categorySeeds)[number]) => (locale === 'en' ? c.nameEn : c.nameId);
+const catDesc = (c: (typeof categorySeeds)[number]) => (locale === 'en' ? c.descEn : c.descId);
+const title = t('home.title', { brand: site.name });
+const description = t('home.description', { cityCount: citySeeds.length });
+const origin = (Astro.site ?? new URL(site.url)).origin;
+const jsonLd = [
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: site.name, url: origin, inLanguage: locale },
+  { '@context': 'https://schema.org', '@type': 'Organization', name: site.name, url: origin },
+];
+---
+<Base title={title} description={description} path="/" jsonLd={jsonLd}>
+  <section class="bg-gradient-to-b from-brand-50 to-transparent dark:from-brand-950/30">
+    <div class="container-page py-10 sm:py-14">
+      <h1 class="text-3xl font-black tracking-tight sm:text-4xl">{t('home.h1')}</h1>
+      <p class="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">{t('home.intro')}</p>
+    </div>
+  </section>
+  <section class="container-page py-6">
+    <h2 class="mb-3 text-lg font-bold">{t('home.categories')}</h2>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {categorySeeds.map((cat) => (
+        <a href={localizedPath(locale, `/${site.defaultCitySlug}/${cat.slug}/`)} class="card p-4 transition hover:border-brand-400">
+          <div class="font-semibold">{catName(cat)}</div>
+          <p class="mt-1 text-xs text-zinc-500">{catDesc(cat)}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+  <section class="container-page py-6">
+    <h2 class="mb-3 text-lg font-bold">{t('home.pickCity')}</h2>
+    <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      {citySeeds.map((city) => (
+        <li>
+          <a href={localizedPath(locale, `/${city.slug}/`)} class="card block px-3 py-2 text-sm font-medium transition hover:border-brand-400">{cityName(city)}</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

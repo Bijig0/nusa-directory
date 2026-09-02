@@ -1,0 +1,29 @@
+---
+import { translate } from '../../domain/i18n';
+const t = translate(Astro.locals.dict);
+---
+<div id="age-gate" hidden class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/90 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="age-gate-title">
+  <div class="card w-full max-w-md p-6 text-center">
+    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-2xl font-black text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">18+</div>
+    <h2 id="age-gate-title" class="text-xl font-bold">{t('agegate.title')}</h2>
+    <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t('agegate.body')}</p>
+    <div class="mt-6 flex flex-col gap-2">
+      <button type="button" id="age-gate-enter" class="btn-primary w-full">{t('agegate.enter')}</button>
+      <a href="https://www.google.com" class="btn-ghost w-full">{t('agegate.leave')}</a>
+    </div>
+  </div>
+</div>
+<script>
+  const gate = document.getElementById('age-gate');
+  const hasCookie = document.cookie.split('; ').some((c) => c.startsWith('age_ok=1'));
+  if (gate && !hasCookie) {
+    gate.hidden = false;
+    document.documentElement.classList.add('overflow-hidden');
+    document.getElementById('age-gate-enter')?.addEventListener('click', () => {
+      const expires = new Date(Date.now() + 365 * 24 * 3600 * 1000).toUTCString();
+      document.cookie = `age_ok=1; path=/; expires=${expires}; SameSite=Lax`;
+      gate.hidden = true;
+      document.documentElement.classList.remove('overflow-hidden');
+    });
+  }
+</script>

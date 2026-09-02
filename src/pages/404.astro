@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import { translate, localizedPath } from '../domain/i18n';
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+---
+<Base title={t('notfound.title')} description={t('notfound.body')} path="/404/" noindex>
+  <div class="container-page py-20 text-center">
+    <p class="text-6xl font-black text-brand-600">404</p>
+    <h1 class="mt-4 text-2xl font-bold">{t('notfound.title')}</h1>
+    <p class="mt-2 text-zinc-600 dark:text-zinc-400">{t('notfound.body')}</p>
+    <a href={localizedPath(locale, '/')} class="btn-primary mt-6">{t('notfound.back')}</a>
+  </div>
+</Base>

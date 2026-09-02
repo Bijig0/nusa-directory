@@ -1,0 +1,41 @@
+{
+  "name": "escort-directory",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "types": "wrangler types",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "seed": "bun run scripts/seed.ts"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.2.6",
+    "@astrojs/preact": "^6.0.5",
+    "@cf-wasm/photon": "^0.4.0",
+    "@preact/signals": "^2.11.1",
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
+    "arctic": "^3.7.0",
+    "astro": "^7.2.10",
+    "drizzle-orm": "^0.45.2",
+    "preact": "^10.29.8",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.62.1",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.128.0"
+  }
+}

@@ -1,0 +1,13 @@
+---
+interface Props {
+  data: Record<string, unknown> | readonly Record<string, unknown>[];
+}
+const { data } = Astro.props;
+const items = Array.isArray(data) ? data : [data];
+// Escape `</script` and U+2028/2029 so the JSON can never break out of the script tag.
+const json = JSON.stringify(items.length === 1 ? items[0] : items)
+  .replaceAll('</', '<\\/')
+  .replaceAll(' ', '\\u2028')
+  .replaceAll(' ', '\\u2029');
+---
+<script type="application/ld+json" set:html={json} />

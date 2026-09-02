@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import { site } from '../../site.config';
+import { alternates, ogLocale } from '../domain/i18n';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import AgeGate from '../components/astro/AgeGate.astro';
+import JsonLd from '../components/astro/JsonLd.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Locale-less path used for canonical + hreflang, e.g. '/batam/escorts/'. */
+  path: string;
+  /** Override the canonical URL (defaults to the localized `path`). */
+  canonical?: string;
+  noindex?: boolean;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  jsonLd?: readonly Record<string, unknown>[];
+  /** Hide header/footer chrome (auth pages, admin). */
+  bare?: boolean;
+  /** Skip the age gate (policy pages). */
+  noAgeGate?: boolean;
+}
+
+const { title, description, path, canonical, noindex = false, ogImage, ogType = 'website', jsonLd = [], bare = false, noAgeGate = false } = Astro.props;
+const { locale } = Astro.locals;
+const origin = (Astro.site ?? new URL(site.url)).origin;
+const links = alternates(path, origin);
+const canonicalUrl = canonical ?? links.find((l) => l.hreflang === locale)?.href ?? `${origin}${path}`;
+const ogImageUrl = ogImage ? (ogImage.startsWith('http') ? ogImage : `${origin}${ogImage}`) : `${origin}${site.defaultOgImagePath}`;
+---
+<!doctype html>
+<html lang={locale} class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex ? <meta name="robots" content="noindex,follow" /> : <meta name="robots" content="index,follow,max-image-preview:large" />}
+    {links.map((l) => <link rel="alternate" hreflang={l.hreflang} href={l.href} />)}
+    <meta name="rating" content="adult" />
+    <meta name="RATING" content="RTA-5042-1996-1400-1577-RTA" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content={ogLocale(locale)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#db2777" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
+    <slot name="head" />
+  </head>
+  <body class="flex min-h-full flex-col">
+    {!bare && <Header />}
+    <main class="flex-1">
+      <slot />
+    </main>
+    {!bare && <Footer />}
+    {!noAgeGate && <AgeGate />}
+  </body>
+</html>
