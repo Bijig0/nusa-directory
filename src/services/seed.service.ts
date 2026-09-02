@@ -54,9 +54,10 @@ export const runSeed = async (deps: Deps): Promise<SeedSummary> => {
 
   // D1 allows at most 100 bound parameters per statement, so every bulk insert is chunked.
   const chunk = <T>(rows: readonly T[], size: number): T[][] => Array.from({ length: Math.ceil(rows.length / size) }, (_, i) => rows.slice(i * size, (i + 1) * size));
-  const insertAll = async <T extends { values: (rows: never[]) => { run: () => Promise<unknown> } }>(table: T, rows: readonly unknown[], columns: number) => {
+  type Insertable = { values: (rows: never) => { run: () => Promise<unknown> } };
+  const insertAll = async (table: Insertable, rows: readonly unknown[], columns: number) => {
     const size = Math.max(1, Math.floor(95 / columns));
-    for (const part of chunk(rows, size)) await (table as { values: (r: unknown[]) => { run: () => Promise<unknown> } }).values(part).run();
+    for (const part of chunk(rows, size)) await table.values(part as never).run();
   };
 
   await insertAll(db.insert(categories), categorySeeds.map((c) => ({ id: c.id, slug: c.slug, nameId: c.nameId, nameEn: c.nameEn, descId: c.descId, descEn: c.descEn, sortOrder: c.sortOrder })), 7);

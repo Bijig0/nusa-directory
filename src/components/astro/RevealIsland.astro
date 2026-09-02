@@ -1,0 +1,38 @@
+---
+/** Server wrapper that assembles labels + packs for the RevealButton island. */
+import RevealButton from '../islands/RevealButton/index';
+import { translate } from '../../domain/i18n';
+import { formatIdr } from '../../domain/money';
+import { maskPhone } from '../../domain/phone';
+import type { Product } from '../../infra/db/schema';
+
+interface Props { listingId: string; phoneE164: string; variant: 'box' | 'sticky'; packs: readonly Product[] }
+const { listingId, phoneE164, variant, packs } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const labels = {
+  reveal: t('listing.reveal'), hint: t('listing.revealHint'), whatsapp: t('listing.whatsapp'), call: t('listing.call'), telegram: t('listing.telegram'),
+  loading: t('reveal.loading'), error: t('reveal.error'), rateLimited: t('reveal.rateLimited'), balance: t('reveal.balance'),
+};
+const packLabels = {
+  title: t('packs.title'), subtitle: t('packs.subtitle'), buy: t('packs.buy'), close: t('packs.close'), secure: t('packs.secure'),
+  paymentUnavailable: t('packs.unavailable'), paymentFailed: t('packs.failed'), waiting: t('packs.waiting'),
+};
+const packProps = packs
+  .filter((p) => p.kind === 'reveal_pack' && p.credits)
+  .map((p) => ({
+    code: p.code, name: locale === 'en' ? p.nameEn : p.nameId, credits: p.credits!, priceLabel: formatIdr(p.priceIdr, locale),
+    perRevealLabel: t('packs.perReveal', { price: formatIdr(Math.round(p.priceIdr / p.credits!), locale) }), popular: p.code === 'reveal_15',
+  }));
+---
+<RevealButton client:only="preact" listingId={listingId} masked={maskPhone(phoneE164)} variant={variant} labels={labels} packLabels={packLabels} packs={packProps}>
+  {variant === 'box' ? (
+    <div slot="fallback">
+      <div class="rounded-lg border border-dashed border-zinc-300 p-3 text-center font-mono text-lg tracking-wider text-zinc-500 dark:border-zinc-700">{maskPhone(phoneE164)}</div>
+      <button type="button" class="btn-primary mt-3 w-full" disabled>{labels.reveal}</button>
+      <p class="mt-2 text-center text-xs text-zinc-500">{labels.hint}</p>
+    </div>
+  ) : (
+    <button slot="fallback" type="button" class="btn-primary w-full" disabled>{labels.reveal} · {maskPhone(phoneE164)}</button>
+  )}
+</RevealButton>

@@ -1,13 +1,16 @@
+/// <reference types="node" />
 /**
  * Seeds the local D1 database through the running dev/preview server.
  * Usage: bun run seed   (server must be running on BASE_URL, default http://localhost:4321)
  */
+import { readFileSync } from 'node:fs';
+
 const base = process.env.BASE_URL ?? 'http://localhost:4321';
 const token = process.env.SEED_TOKEN ?? readDevVar('SEED_TOKEN') ?? 'dev-seed-token';
 
 function readDevVar(name: string): string | undefined {
   try {
-    const text = require('node:fs').readFileSync(new URL('../.dev.vars', import.meta.url), 'utf8') as string;
+    const text = readFileSync(new URL('../.dev.vars', import.meta.url), 'utf8');
     const line = text.split('\n').find((l) => l.startsWith(`${name}=`));
     return line?.slice(name.length + 1).trim();
   } catch {

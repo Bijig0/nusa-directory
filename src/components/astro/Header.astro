@@ -6,7 +6,7 @@ const t = translate(dict);
 const { path } = splitLocale(Astro.url.pathname);
 const otherLocale = locale === 'id' ? 'en' : 'id';
 const home = localizedPath(locale, '/');
-const isSignedIn = Boolean((Astro.locals as { user?: unknown }).user);
+const isSignedIn = Boolean(Astro.locals.user);
 ---
 <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
   <div class="container-page flex h-14 items-center justify-between gap-3">

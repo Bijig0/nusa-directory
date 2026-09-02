@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+import ListingCard from '../components/astro/ListingCard.astro';
+import { translate } from '../domain/i18n';
+import { readPrincipal } from '../services/principal.service';
+import { favoriteListingIds } from '../infra/db/repos/wallets';
+import { listingsByIds } from '../infra/db/repos/listings';
+
+const { locale, dict, deps } = Astro.locals;
+const t = translate(dict);
+const principal = await readPrincipal(Astro.locals, Astro.cookies);
+const ids = principal.walletId ? await favoriteListingIds(deps.db, principal.walletId) : [];
+const items = await listingsByIds(deps.db, ids);
+const ordered = ids.map((id) => items.find((i) => i.id === id)).filter((i): i is NonNullable<typeof i> => Boolean(i));
+const now = deps.clock.now();
+---
+<Base title={`${t('favorites.title')} | ${locale === 'en' ? 'Saved' : 'Favorit'}`} description={t('favorites.description')} path="/favorites/" noindex>
+  <div class="container-page py-8">
+    <h1 class="text-2xl font-black tracking-tight">{t('favorites.title')}</h1>
+    {ordered.length === 0 ? (
+      <p class="card mt-6 p-8 text-center text-sm text-zinc-500">{t('favorites.empty')}</p>
+    ) : (
+      <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{ordered.map((item) => <ListingCard item={item} now={now} />)}</div>
+    )}
+  </div>
+</Base>

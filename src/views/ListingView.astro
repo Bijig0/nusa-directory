@@ -4,6 +4,8 @@ import Breadcrumbs from '../components/astro/Breadcrumbs.astro';
 import ListingCard from '../components/astro/ListingCard.astro';
 import PhotoGallery from '../components/astro/PhotoGallery.astro';
 import RateTable from '../components/astro/RateTable.astro';
+import RevealIsland from '../components/astro/RevealIsland.astro';
+import Heart from '../components/islands/Favorites/Heart';
 import { translate, localizedPath } from '../domain/i18n';
 import { categoryPath, areaPath } from '../domain/slug';
 import { maskPhone } from '../domain/phone';
@@ -115,13 +117,13 @@ const inOut = L ? (L.incall && L.outcall ? t('listing.incallOutcall') : L.incall
             <h2 class="text-base font-bold">{t('listing.rates')}</h2>
             <RateTable rate1h={L.rate1h} rate2h={L.rate2h} rateOvernight={L.rateOvernight} />
             <h2 class="mt-4 text-base font-bold">{t('listing.contact')}</h2>
-            <div id="contact-box" class="mt-2" data-listing-id={L.id} data-masked={maskPhone(L.phoneE164)} data-has-telegram={L.telegramHandle ? '1' : '0'}>
-              <div class="rounded-lg border border-dashed border-zinc-300 p-3 text-center font-mono text-lg tracking-wider text-zinc-500 dark:border-zinc-700">{maskPhone(L.phoneE164)}</div>
-              <button type="button" class="btn-primary mt-3 w-full" data-reveal-button>{t('listing.reveal')}</button>
-              <p class="mt-2 text-center text-xs text-zinc-500">{t('listing.revealHint')}</p>
+            <div id="contact-box" class="mt-2" data-listing-id={L.id}>
+              <RevealIsland listingId={L.id} phoneE164={L.phoneE164} variant="box" packs={page.packs} />
             </div>
             <div class="mt-4 flex justify-between text-xs">
-              <button type="button" class="text-zinc-500 hover:text-brand-600" data-favorite-button data-listing-id={L.id}>♡ {t('listing.favorite')}</button>
+              <Heart client:only="preact" listingId={L.id} labels={{ save: t('listing.favorite'), saved: t('listing.favorited') }}>
+                <span slot="fallback" class="text-zinc-400">♡ {t('listing.favorite')}</span>
+              </Heart>
               <a href={`#report`} class="text-zinc-500 hover:text-red-600" data-report-button>{t('listing.report')}</a>
             </div>
           </div>
@@ -142,7 +144,8 @@ const inOut = L ? (L.incall && L.outcall ? t('listing.incallOutcall') : L.incall
       )}
     </div>
     <div class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 p-3 backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95" data-sticky-cta>
-      <button type="button" class="btn-primary w-full" data-reveal-button>{t('listing.reveal')} · {maskPhone(L.phoneE164)}</button>
+      <RevealIsland listingId={L.id} phoneE164={L.phoneE164} variant="sticky" packs={page.packs} />
     </div>
+    <div class="h-20 lg:hidden" aria-hidden="true"></div>
   </Base>
 )}

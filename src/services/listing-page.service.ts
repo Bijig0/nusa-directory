@@ -4,11 +4,12 @@ import { site } from '../../site.config';
 import { loadGeo, cityById, categoryById, areaById, type Geo } from '../infra/db/repos/geo';
 import { findListingByShortId, listingPhotosOf, listingServiceNames, relatedListings, type ListingCard } from '../infra/db/repos/listings';
 import { approvedReviews } from '../infra/db/repos/reviews';
+import { activeProducts } from '../infra/db/repos/products';
 import { parseListingSegment, listingPath, cityPath, categoryPath, areaPath } from '../domain/slug';
 import { listingSeo, breadcrumbList, webPage, type PageSeo, type Crumb } from '../domain/seo';
 import { excerpt, tierOf, type Tier } from '../domain/listing';
 import { localizedPath } from '../domain/i18n';
-import type { Area, Category, City, Listing, ListingPhoto, Review } from '../infra/db/schema';
+import type { Area, Category, City, Listing, ListingPhoto, Product, Review } from '../infra/db/schema';
 
 const name = (locale: Locale, row: { nameId: string; nameEn: string }): string => (locale === 'en' ? row.nameEn : row.nameId);
 
@@ -28,6 +29,7 @@ export interface ListingPage {
   services: readonly { id: string; slug: string; nameId: string; nameEn: string }[];
   related: readonly ListingCard[];
   reviews: readonly Review[];
+  packs: readonly Product[];
   seo: PageSeo;
   crumbs: readonly Crumb[];
   jsonLd: readonly Record<string, unknown>[];
@@ -56,11 +58,12 @@ export const loadListingPage = async (
   if (city.slug !== citySlug || category.slug !== categorySlug || listing.slug !== parsed.slug) return { kind: 'redirect', to: canonicalPath };
 
   const now = deps.clock.now();
-  const [photos, services, related, reviews] = await Promise.all([
+  const [photos, services, related, reviews, packs] = await Promise.all([
     listingPhotosOf(deps.db, listing.id),
     listingServiceNames(deps.db, listing.id),
     relatedListings(deps.db, listing, now, 6),
     approvedReviews(deps.db, listing.id),
+    activeProducts(deps.db),
   ]);
   const area = areaById(geo, listing.areaId);
   const seo = listingSeo({ locale, brand: site.name, title: listing.title, excerpt: excerpt(listing.description), city: name(locale, city), category: name(locale, category), area: area ? name(locale, area) : undefined });
@@ -76,7 +79,7 @@ export const loadListingPage = async (
   return {
     kind: 'ok',
     page: {
-      listing, city, category, area, geo, photos, services, related, reviews, seo, crumbs, canonicalPath, now, isOwner,
+      listing, city, category, area, geo, photos, services, related, reviews, packs, seo, crumbs, canonicalPath, now, isOwner,
       tier: tierOf(listing, now),
       jsonLd: [breadcrumbList(crumbs), webPage({ name: seo.title, description: seo.description, url: `${origin}${canonicalPath}`, image, datePublished: listing.publishedAt ?? undefined, dateModified: listing.updatedAt, locale })],
     },

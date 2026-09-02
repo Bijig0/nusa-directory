@@ -74,7 +74,7 @@ const hasFilters = Object.entries(f).some(([k, v]) => !['sort', 'page', 'area'].
 <script>
   // Area is a path segment (SEO), so the select navigates instead of submitting a param.
   const form = document.getElementById('filters') as HTMLFormElement | null;
-  const areaSelect = form?.querySelector<HTMLSelectElement>('[data-area-select]');
+  const areaSelect = form?.querySelector('[data-area-select]') as HTMLSelectElement | null;
   form?.addEventListener('submit', (e) => {
     if (areaSelect?.value) {
       e.preventDefault();
@@ -85,8 +85,9 @@ const hasFilters = Object.entries(f).some(([k, v]) => !['sort', 'page', 'area'].
       const query = qs.toString();
       location.href = areaSelect.value + (query ? `?${query}` : '');
     } else {
-      form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input,select').forEach((el) => {
-        if (el.name === 'area_select' || (el.value === '' ) || (el.name === 'sort' && el.value === 'bumped')) el.disabled = true;
+      form.querySelectorAll('input,select').forEach((node) => {
+        const el = node as HTMLInputElement | HTMLSelectElement;
+        if (el.name === 'area_select' || el.value === '' || (el.name === 'sort' && el.value === 'bumped')) el.disabled = true;
       });
     }
   });

@@ -1,0 +1,36 @@
+---
+import Base from './Base.astro';
+import { translate } from '../domain/i18n';
+import { site } from '../../site.config';
+
+interface Props { title: string; active: 'listings' | 'new' | 'orders' | 'account' | 'stats' }
+const { title, active } = Astro.props;
+const { dict, user, isAdmin } = Astro.locals;
+const t = translate(dict);
+const nav = [
+  ['listings', '/dashboard/', t('dash.listings')],
+  ['new', '/dashboard/listings/new/', t('dash.newListing')],
+  ['orders', '/dashboard/orders/', t('dash.orders')],
+  ['account', '/dashboard/account/', t('dash.account')],
+] as const;
+---
+<Base title={`${title} | ${t('dash.title')} · ${site.name}`} description={title} path="/dashboard/" noindex noAgeGate>
+  <div class="container-page grid gap-6 py-6 lg:grid-cols-[220px_1fr]">
+    <aside class="lg:sticky lg:top-20 lg:self-start">
+      <div class="card p-3">
+        <p class="truncate px-2 py-1 text-sm font-semibold">{user?.displayName ?? '—'}</p>
+        <nav class="mt-2 flex gap-1 overflow-x-auto lg:flex-col" aria-label={t('dash.title')}>
+          {nav.map(([key, href, label]) => (
+            <a href={href} class={`shrink-0 rounded-lg px-3 py-2 text-sm ${active === key ? 'bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-200' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>{label}</a>
+          ))}
+          {isAdmin && <a href="/admin/" class="shrink-0 rounded-lg px-3 py-2 text-sm text-amber-700 hover:bg-amber-50 dark:text-amber-300">{t('dash.admin')}</a>}
+          <form method="post" action="/auth/logout" class="shrink-0 lg:mt-2"><button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">{t('dash.logout')}</button></form>
+        </nav>
+      </div>
+    </aside>
+    <section class="min-w-0">
+      <h1 class="mb-4 text-2xl font-black tracking-tight">{title}</h1>
+      <slot />
+    </section>
+  </div>
+</Base>

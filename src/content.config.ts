@@ -1,4 +1,5 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 
 /** Entry ids are `<locale>/<slug>` (from the folder + file name); the same slug exists in both locales. */

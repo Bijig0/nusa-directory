@@ -1,0 +1,19 @@
+---
+import AuthForms from '../islands/AuthForms/index';
+import { translate } from '../../domain/i18n';
+interface Props { next: string; link?: boolean; initialChannel?: 'wa' | 'email' }
+const { next, link = false, initialChannel = 'wa' } = Astro.props;
+const t = translate(Astro.locals.dict);
+const errors = Object.fromEntries(['invalid_destination', 'throttled', 'send_failed', 'already_linked', 'mismatch', 'expired', 'consumed', 'too_many_attempts', 'not_found', 'generic'].map((k) => [k, t(`auth.err.${k}`)]));
+const labels = {
+  tabWa: t('auth.tabWa'), tabEmail: t('auth.tabEmail'), phoneLabel: t('auth.phoneLabel'), phonePlaceholder: t('auth.phonePlaceholder'), emailLabel: t('auth.emailLabel'), emailPlaceholder: t('auth.emailPlaceholder'),
+  sendCode: t('auth.sendCode'), codeTitle: t('auth.codeTitle'), codeSent: t('auth.codeSent'), codeLabel: t('auth.codeLabel'), verify: t('auth.verify'), resend: t('auth.resend'), change: t('auth.change'), devCode: t('auth.devCode'), errors,
+};
+---
+<AuthForms client:only="preact" labels={labels} next={next} link={link} initialChannel={initialChannel}>
+  <div slot="fallback" class="space-y-3">
+    <label class="label">{labels.phoneLabel}</label>
+    <input class="input" type="tel" placeholder={labels.phonePlaceholder} disabled />
+    <button type="button" class="btn-primary w-full" disabled>{labels.sendCode}</button>
+  </div>
+</AuthForms>

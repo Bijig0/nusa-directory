@@ -1,0 +1,8 @@
+---
+import Dashboard from '../../layouts/Dashboard.astro';
+import { translate } from '../../domain/i18n';
+const t = translate(Astro.locals.dict);
+---
+<Dashboard title={t('dash.listings')} active="listings">
+  <p class="card p-6 text-sm text-zinc-500">…</p>
+</Dashboard>

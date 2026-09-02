@@ -31,7 +31,6 @@ export default defineConfig({
           include: [
             'astro/app/manifest',
             'astro/assets/services/noop',
-            '@astrojs/preact/server.js',
             'preact',
             'preact/hooks',
             'preact/jsx-runtime',
