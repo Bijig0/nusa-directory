@@ -1,8 +1,6 @@
 ---
 title: "Panduan area hiburan malam Batam: Nagoya, Harbour Bay, dan Batam Centre"
 description: "Kenali area utama di Batam sebelum memesan pendamping atau pijat panggilan: hotel, akses feri, dan tips aman."
-slug: "panduan-area-batam"
-locale: "id"
 published: 2026-08-15
 city: "batam"
 tags: ["batam", "panduan"]

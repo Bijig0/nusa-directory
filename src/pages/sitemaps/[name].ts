@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { staticSitemap, citiesSitemap, listingsSitemap, blogSitemap } from '../../services/sitemap.service';
 import { STATIC_PAGE_PATHS } from '../../data/static-pages';
-import { site } from '../../site.config';
+import { site } from '../../../site.config';
 
 export const prerender = false;
 
@@ -15,8 +15,8 @@ export const GET: APIRoute = async ({ params, locals, site: astroSite }) => {
   if (name === 'static') return xml(staticSitemap(origin, STATIC_PAGE_PATHS));
   if (name === 'cities') return xml(await citiesSitemap(locals.deps, origin));
   if (name === 'blog') {
-    const posts = await getCollection('blog', (p) => p.data.locale === 'id');
-    return xml(blogSitemap(origin, posts.map((p) => ({ path: `/blog/${p.data.slug}/`, updated: p.data.updated ?? p.data.published }))));
+    const posts = await getCollection('blog', (p) => p.id.startsWith('id/'));
+    return xml(blogSitemap(origin, posts.map((p) => ({ path: `/blog/${p.id.slice(3)}/`, updated: p.data.updated ?? p.data.published }))));
   }
   const match = /^listings-(\d+)$/.exec(name);
   if (match) {

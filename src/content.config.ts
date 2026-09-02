@@ -1,13 +1,12 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+/** Entry ids are `<locale>/<slug>` (from the folder + file name); the same slug exists in both locales. */
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
   schema: z.object({
     title: z.string(),
     description: z.string(),
-    slug: z.string(),
-    locale: z.enum(['id', 'en']),
     published: z.coerce.date(),
     updated: z.coerce.date().optional(),
     city: z.string().optional(),
@@ -20,8 +19,6 @@ const pages = defineCollection({
   schema: z.object({
     title: z.string(),
     description: z.string(),
-    slug: z.string(),
-    locale: z.enum(['id', 'en']),
     updated: z.coerce.date(),
   }),
 });

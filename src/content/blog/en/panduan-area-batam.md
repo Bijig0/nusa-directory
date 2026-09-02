@@ -1,8 +1,6 @@
 ---
 title: "Batam nightlife areas guide: Nagoya, Harbour Bay and Batam Centre"
 description: "Know the main areas of Batam before booking a companion or outcall massage: hotels, ferry access and safety tips."
-slug: "panduan-area-batam"
-locale: "en"
 published: 2026-08-15
 city: "batam"
 tags: ["batam", "guide"]
