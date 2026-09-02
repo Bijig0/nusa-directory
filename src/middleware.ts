@@ -1,4 +1,5 @@
 import { defineMiddleware, sequence } from 'astro:middleware';
+import { getActionContext } from 'astro:actions';
 import { env } from 'cloudflare:workers';
 import { getDict } from './i18n';
 import { defaultLocale, isLocale } from './domain/i18n';
@@ -43,6 +44,20 @@ const session = defineMiddleware(async (context, next) => {
   return next();
 });
 
+/** POST-redirect-GET for HTML form actions (admin panel, poster replies): run the action, then bounce back with a flag. */
+const formActions = defineMiddleware(async (context, next) => {
+  const { action } = getActionContext(context);
+  if (action?.calledFrom === 'form') {
+    const result = await action.handler();
+    const url = new URL(context.request.url);
+    url.searchParams.delete('_action');
+    if (result.error) url.searchParams.set('error', result.error.code);
+    else url.searchParams.set('done', action.name);
+    return context.redirect(`${url.pathname}${url.search}`, 303);
+  }
+  return next();
+});
+
 const guards = defineMiddleware((context, next) => {
   const { pathname, search } = context.url;
   if (pathname.startsWith('/dashboard') && !context.locals.user) {
@@ -71,4 +86,4 @@ const securityHeaders = defineMiddleware(async (context, next) => {
   return response;
 });
 
-export const onRequest = sequence(trailingSlash, locale, deps, session, guards, securityHeaders);
+export const onRequest = sequence(trailingSlash, locale, deps, session, guards, formActions, securityHeaders);

@@ -1,0 +1,17 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { translate } from '../../domain/i18n';
+import { formatIdr } from '../../domain/money';
+import { recentOrders } from '../../infra/db/repos/orders';
+const { locale, dict, deps } = Astro.locals;
+const t = translate(dict);
+const rows = await recentOrders(deps.db, 200);
+---
+<Admin title={t('admin.orders')} active="orders">
+  <div class="card overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-zinc-50 text-xs text-zinc-500 dark:bg-zinc-800"><tr><th class="p-3">Order</th><th class="p-3">{t('orders.date')}</th><th class="p-3">{t('orders.item')}</th><th class="p-3">{t('orders.amount')}</th><th class="p-3">{t('orders.status')}</th><th class="p-3">Payment</th></tr></thead>
+      <tbody>{rows.map((o) => <tr class="border-t border-zinc-100 dark:border-zinc-800"><td class="p-3 font-mono text-xs">{o.id}</td><td class="p-3">{o.createdAt.toISOString().slice(0, 16)}</td><td class="p-3">{o.productCode}{o.listingId ? ' ↗' : ''}</td><td class="p-3">{formatIdr(o.amountIdr, locale)}</td><td class="p-3">{o.status}</td><td class="p-3 text-xs">{o.paymentType ?? '—'} {o.midtransTransactionId ?? ''}</td></tr>)}</tbody>
+    </table>
+  </div>
+</Admin>

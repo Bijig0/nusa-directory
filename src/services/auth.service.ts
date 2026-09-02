@@ -178,6 +178,7 @@ export const startSession = async (deps: Deps, cookies: AstroCookies, request: R
   ]);
   await insertSession(deps.db, { id: s.id, userId: user.id, expiresAt: s.expiresAt, createdAt: now, lastSeenAt: now, ipHash, uaHash }).run();
   cookies.set(SESSION_COOKIE, s.token, sessionCookieOptions(deps, SESSION_TTL_MS / 1000));
+  cookies.set('li', '1', { ...sessionCookieOptions(deps, SESSION_TTL_MS / 1000), httpOnly: false });
   const device = await readDevice(deps, cookies);
   if (device && device.walletId !== user.walletId) await mergeDeviceIntoUser(deps.db, device.id, device.walletId, user, now);
 };
@@ -186,6 +187,7 @@ export const endSession = async (deps: Deps, cookies: AstroCookies): Promise<voi
   const token = cookies.get(SESSION_COOKIE)?.value;
   if (token) await deleteSession(deps.db, await sessionIdFromToken(token)).run();
   cookies.delete(SESSION_COOKIE, { path: '/' });
+  cookies.delete('li', { path: '/' });
 };
 
 export interface Resolved {

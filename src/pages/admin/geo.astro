@@ -1,0 +1,28 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminForm from '../../components/astro/AdminForm.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../domain/i18n';
+import { cities, areas } from '../../infra/db/schema';
+import { asc } from 'drizzle-orm';
+const { dict, deps } = Astro.locals;
+const t = translate(dict);
+const [cityRows, areaRows] = await Promise.all([deps.db.select().from(cities).orderBy(asc(cities.sortOrder)), deps.db.select().from(areas).orderBy(asc(areas.nameId))]);
+---
+<Admin title={t('admin.geo')} active="geo">
+  <form method="post" action={String(actions.admin.addArea)} class="card mb-4 flex flex-wrap items-end gap-2 p-3 text-sm">
+    
+    <label class="flex flex-col"><span class="label">City</span><select class="input" name="cityId">{cityRows.map((c) => <option value={c.id}>{c.nameId}</option>)}</select></label>
+    <label class="flex flex-col"><span class="label">Area (ID)</span><input class="input" name="nameId" required minlength="2" /></label>
+    <label class="flex flex-col"><span class="label">Area (EN)</span><input class="input" name="nameEn" /></label>
+    <button type="submit" class="btn-primary">+ Area</button>
+  </form>
+  <div class="grid gap-3 md:grid-cols-2">
+    {cityRows.map((c) => (
+      <div class={`card p-3 text-sm ${c.isActive ? '' : 'opacity-60'}`}>
+        <div class="flex items-center justify-between"><span class="font-semibold">{c.nameId} <span class="text-xs text-zinc-400">/{c.slug}/</span></span><AdminForm action={actions.admin.toggleGeo} fields={{ kind: 'city', id: c.id, isActive: c.isActive ? '0' : '1' }} label={c.isActive ? 'off' : 'on'} class="btn-ghost text-xs" /></div>
+        <ul class="mt-1 flex flex-wrap gap-1">{areaRows.filter((a) => a.cityId === c.id).map((a) => <li class={`rounded-full border px-2 py-0.5 text-xs ${a.isActive ? 'border-zinc-200 dark:border-zinc-700' : 'line-through opacity-50'}`}>{a.nameId} <AdminForm action={actions.admin.toggleGeo} fields={{ kind: 'area', id: a.id, isActive: a.isActive ? '0' : '1' }} label="×" class="text-zinc-400 hover:text-red-600" /></li>)}</ul>
+      </div>
+    ))}
+  </div>
+</Admin>

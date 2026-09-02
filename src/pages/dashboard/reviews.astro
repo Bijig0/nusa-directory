@@ -1,0 +1,28 @@
+---
+import Dashboard from '../../layouts/Dashboard.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../domain/i18n';
+import { myListings } from '../../services/listing.service';
+import { approvedReviews } from '../../infra/db/repos/reviews';
+const { dict, deps, user } = Astro.locals;
+const t = translate(dict);
+const mine = await myListings(deps, user!);
+const groups = await Promise.all(mine.map(async (l) => ({ listing: l, reviews: await approvedReviews(deps.db, l.id) })));
+---
+<Dashboard title={t('listing.reviews')} active="listings">
+  {groups.every((g) => g.reviews.length === 0) ? <p class="card p-6 text-sm text-zinc-500">{t('listing.noReviews')}</p> : groups.filter((g) => g.reviews.length).map(({ listing, reviews }) => (
+    <section class="card mb-3 p-4">
+      <h2 class="font-semibold">{listing.title}</h2>
+      <ul class="mt-2 space-y-3 text-sm">
+        {reviews.map((r) => (
+          <li class="border-t border-zinc-100 pt-2 dark:border-zinc-800">
+            <p class="text-gold-500">{'★'.repeat(r.rating)}</p><p>{r.body}</p>
+            {r.posterReply ? <p class="mt-1 rounded bg-zinc-50 p-2 text-xs dark:bg-zinc-800">↳ {r.posterReply}</p> : (
+              <form method="post" action={String(actions.reviews.reply)} class="mt-2 flex gap-2"><input type="hidden" name="reviewId" value={r.id} /><input class="input" name="reply" maxlength="500" placeholder={t('review.replyPlaceholder')} required /><button class="btn-secondary text-xs" type="submit">{t('review.replySubmit')}</button></form>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Dashboard>

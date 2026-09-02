@@ -1,0 +1,33 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import AdminForm from '../../../components/astro/AdminForm.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../../domain/i18n';
+import { listingQueue, type Queue } from '../../../infra/db/repos/moderation';
+const { dict, deps } = Astro.locals;
+const t = translate(dict);
+const queue = (['new', 'reported', 'edited', 'all'].includes(Astro.url.searchParams.get('queue') ?? '') ? Astro.url.searchParams.get('queue') : 'new') as Queue;
+const rows = await listingQueue(deps.db, queue);
+---
+<Admin title={t('admin.listings')} active="listings">
+  <div class="mb-3 flex gap-1 text-sm">
+    {(['new', 'reported', 'edited', 'all'] as const).map((q) => <a href={`?queue=${q}`} class={`rounded-full border px-3 py-1 ${queue === q ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30' : 'border-zinc-200 dark:border-zinc-700'}`}>{t(`admin.queue.${q}`)}</a>)}
+  </div>
+  {rows.length === 0 ? <p class="card p-6 text-sm text-zinc-500">{t('admin.empty')}</p> : (
+    <ul class="space-y-2">
+      {rows.map(({ listing: l, owner, reportCount, cityName, categoryName }) => (
+        <li class="card flex flex-wrap items-center justify-between gap-2 p-3 text-sm" data-admin-listing={l.id}>
+          <div class="min-w-0">
+            <a href={`/admin/listings/${l.id}/`} class="font-semibold hover:text-brand-600">{l.title}</a>
+            <p class="text-xs text-zinc-500">{categoryName} · {cityName} · {t('admin.owner')}: {owner.displayName ?? owner.id} · {l.status}/{l.moderation}{l.verified ? ' · ✓' : ''}{reportCount > 0 ? ` · ⚑ ${reportCount}` : ''}</p>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            {l.moderation !== 'approved' && <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'approve' }} label={t('admin.approve')} class="btn-primary text-xs" />}
+            {l.moderation !== 'hidden' ? <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'hide' }} label={t('admin.hide')} /> : <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'unhide' }} label={t('admin.unhide')} />}
+            <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'remove' }} label={t('admin.remove')} class="btn-ghost text-xs text-red-600" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</Admin>

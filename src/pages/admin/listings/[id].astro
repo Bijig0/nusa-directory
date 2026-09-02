@@ -1,0 +1,71 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import AdminForm from '../../../components/astro/AdminForm.astro';
+import PhotoImg from '../../../components/astro/PhotoImg.astro';
+import { actions } from 'astro:actions';
+import { translate, localizedPath } from '../../../domain/i18n';
+import { listingPath } from '../../../domain/slug';
+import { findListingById, listingPhotosOf } from '../../../infra/db/repos/listings';
+import { reportsForListing } from '../../../infra/db/repos/moderation';
+import { findUser, identitiesOf } from '../../../infra/db/repos/auth';
+import { loadGeo, cityById, categoryById } from '../../../infra/db/repos/geo';
+const { locale, dict, deps } = Astro.locals;
+const t = translate(dict);
+const l = await findListingById(deps.db, Astro.params.id ?? '');
+if (!l) return new Response(null, { status: 404 });
+const [photos, reports, owner, geo] = await Promise.all([listingPhotosOf(deps.db, l.id), reportsForListing(deps.db, l.id), findUser(deps.db, l.ownerUserId), loadGeo(deps.db)]);
+const ownerIds = owner ? await identitiesOf(deps.db, owner.id) : [];
+const city = cityById(geo, l.cityId); const category = categoryById(geo, l.categoryId);
+const publicUrl = city && category ? localizedPath(locale, listingPath(city.slug, category.slug, l.slug, l.shortId)) : '#';
+---
+<Admin title={l.title} active="listings">
+  <div class="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div class="space-y-4">
+      <div class="card p-4 text-sm">
+        <p class="text-xs text-zinc-500">{l.status} / {l.moderation}{l.verified ? ' / ✓ verified' : ''} · ID {l.shortId} · <a href={publicUrl} class="text-brand-600">public ↗</a></p>
+        <p class="mt-2 whitespace-pre-line">{l.description}</p>
+        <dl class="mt-3 grid grid-cols-2 gap-1 text-xs text-zinc-600 dark:text-zinc-400 sm:grid-cols-3">
+          <div><dt>Age</dt><dd class="font-medium">{l.age}</dd></div><div><dt>Phone</dt><dd class="font-medium">{l.phoneE164}</dd></div><div><dt>WhatsApp</dt><dd class="font-medium">{l.whatsappE164 ?? '—'}</dd></div>
+          <div><dt>Telegram</dt><dd class="font-medium">{l.telegramHandle ?? '—'}</dd></div><div><dt>Rate 1h</dt><dd class="font-medium">{l.rate1h ?? '—'}</dd></div><div><dt>Declared</dt><dd class="font-medium">{l.declarationAcceptedAt?.toISOString().slice(0, 10) ?? '—'}</dd></div>
+        </dl>
+      </div>
+      <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {photos.map((p) => <div class="aspect-[3/4] overflow-hidden rounded-lg bg-zinc-100"><PhotoImg listingId={l.id} photoId={p.id} storage={p.storage} color={p.colorHex} width={p.width} height={p.height} alt="" variant="card" class="h-full w-full object-cover" /></div>)}
+      </div>
+      <div class="card p-4">
+        <h2 class="mb-2 font-semibold">{t('admin.reports')} ({reports.length})</h2>
+        {reports.length === 0 ? <p class="text-sm text-zinc-500">{t('admin.empty')}</p> : (
+          <ul class="space-y-2 text-sm">
+            {reports.map((r) => (
+              <li class="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+                <span><span class="badge bg-red-100 text-red-700">{t(`report.reason.${r.reason}`)}</span> <span class="text-xs text-zinc-500">{r.status} · {r.createdAt.toISOString().slice(0, 16)}</span>{r.details && <p class="text-xs">{r.details}</p>}</span>
+                {r.status === 'open' && <span class="flex gap-1"><AdminForm action={actions.admin.report} fields={{ reportId: r.id, status: 'resolved' }} label={t('admin.resolve')} /><AdminForm action={actions.admin.report} fields={{ reportId: r.id, status: 'dismissed' }} label={t('admin.dismiss')} class="btn-ghost text-xs" /></span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+    <aside class="space-y-3">
+      <div class="card flex flex-col gap-2 p-4">
+        {l.moderation !== 'approved' && <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'approve' }} label={t('admin.approve')} class="btn-primary" />}
+        {l.moderation !== 'hidden' ? <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'hide' }} label={t('admin.hide')} class="btn-secondary" /> : <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'unhide' }} label={t('admin.unhide')} class="btn-secondary" />}
+        {l.verified ? <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'unverify' }} label={t('admin.unverify')} class="btn-secondary" /> : <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'verify' }} label={t('admin.verify')} class="btn-secondary" />}
+        <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'grant_featured' }} label={t('admin.grantFeatured')} class="btn-secondary" />
+        <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'grant_vip' }} label={t('admin.grantVip')} class="btn-secondary" />
+        {l.status !== 'removed' && <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'remove' }} label={t('admin.remove')} class="btn-ghost text-red-600" />}
+      </div>
+      {owner && (
+        <div class="card p-4 text-sm">
+          <h2 class="font-semibold">{t('admin.owner')}</h2>
+          <p>{owner.displayName ?? '—'} <span class="text-xs text-zinc-500">({owner.status})</span></p>
+          <ul class="mt-1 text-xs text-zinc-500">{ownerIds.map((i) => <li>{i.provider}: {i.providerId}</li>)}</ul>
+          <div class="mt-2 flex flex-wrap gap-1">
+            {owner.status === 'active' ? <AdminForm action={actions.admin.user} fields={{ userId: owner.id, action: 'ban', reason: 'listing ' + l.shortId }} label={t('admin.ban')} class="btn-ghost text-xs text-red-600" /> : <AdminForm action={actions.admin.user} fields={{ userId: owner.id, action: 'unban' }} label={t('admin.unban')} />}
+            <AdminForm action={actions.admin.user} fields={{ userId: owner.id, action: 'add_credits' }} label={t('admin.addCredits')} />
+          </div>
+        </div>
+      )}
+    </aside>
+  </div>
+</Admin>

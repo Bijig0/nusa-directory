@@ -1,0 +1,9 @@
+---
+/** Tiny inline form posting to an Astro action; hidden fields carry the payload. */
+interface Props { action: { toString(): string }; fields: Record<string, string>; label: string; class?: string; confirm?: string }
+const { action, fields, label, class: cls = 'btn-secondary text-xs', confirm } = Astro.props;
+---
+<form method="post" action={String(action)} class="inline" data-confirm={confirm}>
+  {Object.entries(fields).map(([name, value]) => <input type="hidden" name={name} value={value} />)}
+  <button type="submit" class={cls}>{label}</button>
+</form>

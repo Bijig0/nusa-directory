@@ -6,7 +6,6 @@ const t = translate(dict);
 const { path } = splitLocale(Astro.url.pathname);
 const otherLocale = locale === 'id' ? 'en' : 'id';
 const home = localizedPath(locale, '/');
-const isSignedIn = Boolean(Astro.locals.user);
 ---
 <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
   <div class="container-page flex h-14 items-center justify-between gap-3">
@@ -20,10 +19,15 @@ const isSignedIn = Boolean(Astro.locals.user);
         <span class="sr-only">{t('nav.favorites')}</span>
       </a>
       <a href={localizedPath(otherLocale, path)} class="btn-ghost text-xs uppercase" rel="alternate" hreflang={otherLocale} title={t('lang.switch')}>{otherLocale}</a>
-      {isSignedIn
-        ? <a href="/dashboard/" class="btn-secondary">{t('nav.dashboard')}</a>
-        : <a href="/auth/login/" class="btn-ghost">{t('nav.login')}</a>}
+      <a href="/dashboard/" class="btn-secondary" hidden data-when-signed-in>{t('nav.dashboard')}</a>
+      <a href="/auth/login/" class="btn-ghost" data-when-signed-out>{t('nav.login')}</a>
       <a href="/dashboard/listings/new/" class="btn-primary">{t('nav.post')}</a>
     </nav>
   </div>
 </header>
+<script>
+  // Public pages are cached for everyone, so the signed-in state is toggled client-side from a non-sensitive marker cookie.
+  const signedIn = document.cookie.split('; ').some((c) => c === 'li=1');
+  document.querySelectorAll<HTMLElement>('[data-when-signed-in]').forEach((el) => (el.hidden = !signedIn));
+  document.querySelectorAll<HTMLElement>('[data-when-signed-out]').forEach((el) => (el.hidden = signedIn));
+</script>

@@ -1,0 +1,22 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../domain/i18n';
+import { allProducts } from '../../infra/db/repos/products';
+const { dict, deps } = Astro.locals;
+const t = translate(dict);
+const rows = await allProducts(deps.db);
+---
+<Admin title={t('admin.products')} active="products">
+  <div class="card divide-y divide-zinc-100 dark:divide-zinc-800">
+    {rows.map((p) => (
+      <form method="post" action={String(actions.admin.price)} class="flex flex-wrap items-center gap-3 p-3 text-sm" data-admin-product={p.code}>
+        <input type="hidden" name="code" value={p.code} />
+        <span class="w-40 font-semibold">{p.nameId}<br /><span class="text-xs font-normal text-zinc-500">{p.code} · {p.kind}{p.credits ? ` · ${p.credits} credits` : ''}{p.durationDays ? ` · ${p.durationDays}d` : ''}</span></span>
+        <label class="flex items-center gap-1">Rp <input class="input w-36" type="number" name="priceIdr" min="1000" step="1000" value={p.priceIdr} /></label>
+        <label class="flex items-center gap-1"><input type="checkbox" name="isActive" value="true" checked={p.isActive} /> active</label>
+        <button type="submit" class="btn-secondary text-xs">{t('admin.save')}</button>
+      </form>
+    ))}
+  </div>
+</Admin>

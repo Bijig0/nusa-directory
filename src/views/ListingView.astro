@@ -6,6 +6,9 @@ import PhotoGallery from '../components/astro/PhotoGallery.astro';
 import RateTable from '../components/astro/RateTable.astro';
 import RevealIsland from '../components/astro/RevealIsland.astro';
 import Heart from '../components/islands/Favorites/Heart';
+import ReportForm from '../components/islands/ReportForm/index';
+import ReviewForm from '../components/islands/ReviewForm/index';
+import { REPORT_REASONS } from '../infra/db/schema';
 import { translate, localizedPath } from '../domain/i18n';
 import { categoryPath, areaPath } from '../domain/slug';
 import { maskPhone } from '../domain/phone';
@@ -106,7 +109,7 @@ const inOut = L ? (L.incall && L.outcall ? t('listing.incallOutcall') : L.incall
                 ))}
               </ul>
             )}
-            <div id="review-form-slot" data-listing-id={L.id}></div>
+            <ReviewForm client:only="preact" listingId={L.id} labels={{ open: t('listing.writeReview'), rating: t('review.rating'), body: t('review.body'), submit: t('review.submit'), thanks: t('review.thanks'), error: t('review.error'), already: t('review.already') }} />
           </section>
 
           <p class="mt-8 rounded-lg bg-zinc-100 p-3 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('listing.safety')}</p>
@@ -124,7 +127,9 @@ const inOut = L ? (L.incall && L.outcall ? t('listing.incallOutcall') : L.incall
               <Heart client:only="preact" listingId={L.id} labels={{ save: t('listing.favorite'), saved: t('listing.favorited') }}>
                 <span slot="fallback" class="text-zinc-400">♡ {t('listing.favorite')}</span>
               </Heart>
-              <a href={`#report`} class="text-zinc-500 hover:text-red-600" data-report-button>{t('listing.report')}</a>
+              <ReportForm client:only="preact" listingId={L.id} reasons={REPORT_REASONS.map((r) => ({ value: r, label: t(`report.reason.${r}`) }))} labels={{ open: t('listing.report'), title: t('report.title'), reason: t('report.reason'), details: t('report.details'), submit: t('report.submit'), thanks: t('report.thanks'), error: t('report.error'), cancel: t('report.cancel') }}>
+                <span slot="fallback" class="text-zinc-400">{t('listing.report')}</span>
+              </ReportForm>
             </div>
           </div>
           <div id="reveal-slot"></div>

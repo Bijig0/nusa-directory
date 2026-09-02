@@ -1,0 +1,26 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminForm from '../../components/astro/AdminForm.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../domain/i18n';
+import { openReports } from '../../infra/db/repos/moderation';
+const { dict, deps } = Astro.locals;
+const t = translate(dict);
+const rows = await openReports(deps.db);
+---
+<Admin title={t('admin.reports')} active="reports">
+  {rows.length === 0 ? <p class="card p-6 text-sm text-zinc-500">{t('admin.empty')}</p> : (
+    <ul class="space-y-2 text-sm">
+      {rows.map(({ report: r, listing: l }) => (
+        <li class="card flex flex-wrap items-center justify-between gap-2 p-3" data-admin-report={r.id}>
+          <div><a href={`/admin/listings/${l.id}/`} class="font-semibold hover:text-brand-600">{l.title}</a><p class="text-xs text-zinc-500"><span class="badge bg-red-100 text-red-700">{t(`report.reason.${r.reason}`)}</span> {r.details ?? ''} · {r.createdAt.toISOString().slice(0, 16)}</p></div>
+          <div class="flex gap-1">
+            <AdminForm action={actions.admin.listing} fields={{ listingId: l.id, action: 'hide' }} label={t('admin.hide')} />
+            <AdminForm action={actions.admin.report} fields={{ reportId: r.id, status: 'resolved' }} label={t('admin.resolve')} class="btn-primary text-xs" />
+            <AdminForm action={actions.admin.report} fields={{ reportId: r.id, status: 'dismissed' }} label={t('admin.dismiss')} class="btn-ghost text-xs" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</Admin>

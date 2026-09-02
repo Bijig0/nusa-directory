@@ -1,0 +1,22 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminForm from '../../components/astro/AdminForm.astro';
+import { actions } from 'astro:actions';
+import { translate } from '../../domain/i18n';
+import { pendingReviews } from '../../infra/db/repos/moderation';
+const { dict, deps } = Astro.locals;
+const t = translate(dict);
+const rows = await pendingReviews(deps.db);
+---
+<Admin title={t('admin.reviews')} active="reviews">
+  {rows.length === 0 ? <p class="card p-6 text-sm text-zinc-500">{t('admin.empty')}</p> : (
+    <ul class="space-y-2 text-sm">
+      {rows.map(({ review: r, listing: l }) => (
+        <li class="card flex flex-wrap items-center justify-between gap-2 p-3" data-admin-review={r.id}>
+          <div><a href={`/admin/listings/${l.id}/`} class="font-semibold hover:text-brand-600">{l.title}</a><p class="text-gold-500">{'★'.repeat(r.rating)}</p><p>{r.body}</p></div>
+          <div class="flex gap-1"><AdminForm action={actions.admin.review} fields={{ reviewId: r.id, status: 'approved' }} label={t('admin.approve')} class="btn-primary text-xs" /><AdminForm action={actions.admin.review} fields={{ reviewId: r.id, status: 'rejected' }} label={t('admin.reject')} class="btn-ghost text-xs" /></div>
+        </li>
+      ))}
+    </ul>
+  )}
+</Admin>
