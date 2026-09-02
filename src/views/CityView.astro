@@ -1,0 +1,78 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/astro/Breadcrumbs.astro';
+import ListingCard from '../components/astro/ListingCard.astro';
+import { translate, localizedPath } from '../domain/i18n';
+import { categoryPath, areaPath, cityPath } from '../domain/slug';
+import type { CityPage } from '../services/browse.service';
+import { site } from '../../site.config';
+
+interface Props { page: CityPage }
+const { page } = Astro.props;
+const { locale, dict, deps } = Astro.locals;
+const t = translate(dict);
+const origin = (Astro.site ?? new URL(site.url)).origin;
+const name = (row: { nameId: string; nameEn: string }) => (locale === 'en' ? row.nameEn : row.nameId);
+const cityName = name(page.city);
+const firstCategory = page.geo.categories[0]!;
+const now = deps.clock.now();
+---
+<Base title={page.seo.title} description={page.seo.description} path={cityPath(page.city.slug)} jsonLd={page.jsonLd}>
+  <div class="container-page py-6">
+    <Breadcrumbs crumbs={page.crumbs.map((c) => ({ ...c, url: c.url.replace(origin, '') }))} />
+    <h1 class="mt-3 text-2xl font-black tracking-tight sm:text-3xl">{page.seo.h1}</h1>
+    <p class="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">{page.seo.intro}</p>
+
+    <section class="mt-6">
+      <h2 class="mb-3 text-lg font-bold">{t('city.categories', { city: cityName })}</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {page.categoriesWithCounts.map(({ category, count }) => (
+          <a href={localizedPath(locale, categoryPath(page.city.slug, category.slug))} class="card flex items-center justify-between p-4 transition hover:border-brand-400">
+            <span class="font-semibold">{name(category)}</span>
+            <span class="badge bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{count}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    {page.vip.length > 0 && (
+      <section class="mt-8">
+        <h2 class="mb-3 text-lg font-bold">{t('city.vip', { city: cityName })}</h2>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {page.vip.map((item, i) => <ListingCard item={item} now={now} priority={i < 2} />)}
+        </div>
+      </section>
+    )}
+
+    <section class="mt-8">
+      <h2 class="mb-3 text-lg font-bold">{t('city.areas')}</h2>
+      <ul class="flex flex-wrap gap-2">
+        {page.areasWithCounts.map(({ area, count }) => (
+          <li>
+            <a href={localizedPath(locale, areaPath(page.city.slug, firstCategory.slug, area.slug))} class="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm hover:border-brand-400 dark:border-zinc-700 dark:bg-zinc-900">
+              {name(area)} {count > 0 && <span class="text-xs text-zinc-400">{count}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="mt-8">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-bold">{t('city.latest', { city: cityName })}</h2>
+        <a href={localizedPath(locale, categoryPath(page.city.slug, firstCategory.slug))} class="text-sm text-brand-600 hover:underline">{t('city.viewAll')} →</a>
+      </div>
+      {page.latest.length === 0 ? (
+        <p class="card p-6 text-center text-sm text-zinc-500">{t('browse.noResults')}</p>
+      ) : (
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {page.latest.map((item) => <ListingCard item={item} now={now} />)}
+        </div>
+      )}
+    </section>
+
+    <div class="mt-10 rounded-xl bg-brand-50 p-6 text-center dark:bg-brand-950/30">
+      <a href="/dashboard/listings/new/" class="btn-primary">{t('browse.postCta', { city: cityName })}</a>
+    </div>
+  </div>
+</Base>

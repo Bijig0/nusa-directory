@@ -1,0 +1,39 @@
+---
+/** Renders a listing photo (R2 variants or a placeholder SVG) with proper sizing hints. */
+interface Props {
+  listingId: string;
+  photoId: string | null;
+  storage: string | null;
+  color: string | null;
+  width: number | null;
+  height: number | null;
+  alt: string;
+  variant: 'thumb' | 'card' | 'full';
+  priority?: boolean;
+  class?: string;
+  sizes?: string;
+}
+const { listingId, photoId, storage, color, width, height, alt, variant, priority = false, class: cls = '', sizes } = Astro.props;
+const src = photoId ? `/img/${listingId}/${photoId}/${variant}.jpg` : null;
+const srcset = photoId && storage === 'r2'
+  ? `/img/${listingId}/${photoId}/thumb.jpg 400w, /img/${listingId}/${photoId}/card.jpg 800w, /img/${listingId}/${photoId}/full.jpg 1600w`
+  : undefined;
+const bg = color ?? '#a1a1aa';
+---
+{src ? (
+  <img
+    src={src}
+    srcset={srcset}
+    sizes={srcset ? (sizes ?? (variant === 'thumb' ? '150px' : variant === 'card' ? '(max-width: 640px) 100vw, 400px' : '(max-width: 1024px) 100vw, 800px')) : undefined}
+    alt={alt}
+    width={width ?? 800}
+    height={height ?? 1200}
+    loading={priority ? 'eager' : 'lazy'}
+    fetchpriority={priority ? 'high' : 'auto'}
+    decoding="async"
+    class={cls}
+    style={`background:${bg}`}
+  />
+) : (
+  <div class={cls} style={`background:${bg}`} role="img" aria-label={alt}></div>
+)}

@@ -3,6 +3,7 @@
 
 import type { Locale } from '../site.config';
 import type { Dict } from './domain/i18n';
+import type { Deps } from './infra/env';
 
 declare global {
   namespace App {
@@ -10,6 +11,7 @@ declare global {
       cfContext: ExecutionContext;
       locale: Locale;
       dict: Dict;
+      deps: Deps;
     }
   }
 }

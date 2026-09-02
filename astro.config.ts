@@ -7,7 +7,7 @@ import { site } from './site.config';
 export default defineConfig({
   site: site.url,
   output: 'server',
-  trailingSlash: 'always',
+  trailingSlash: 'ignore',
   compressHTML: true,
   session: false,
   adapter: cloudflare({
@@ -41,6 +41,7 @@ export default defineConfig({
             'drizzle-orm/d1',
             'drizzle-orm/sqlite-core',
             'arctic',
+            'zod',
           ],
           ignoreOutdatedRequests: true,
         },

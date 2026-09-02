@@ -1,0 +1,39 @@
+---
+import type { ListingPhoto } from '../../infra/db/schema';
+import PhotoImg from './PhotoImg.astro';
+interface Props { listingId: string; photos: readonly ListingPhoto[]; title: string }
+const { listingId, photos, title } = Astro.props;
+const [cover, ...rest] = photos;
+---
+{cover ? (
+  <div class="space-y-2" data-gallery>
+    <div class="relative overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+      <PhotoImg listingId={listingId} photoId={cover.id} storage={cover.storage} color={cover.colorHex} width={cover.width} height={cover.height} alt={title} variant="full" priority sizes="(max-width: 1024px) 100vw, 640px" class="mx-auto max-h-[70vh] w-full object-contain" />
+    </div>
+    {rest.length > 0 && (
+      <div class="grid grid-cols-4 gap-2 sm:grid-cols-6">
+        {rest.map((p, i) => (
+          <a href={`/img/${listingId}/${p.id}/full.jpg`} class="block aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800" data-gallery-thumb>
+            <PhotoImg listingId={listingId} photoId={p.id} storage={p.storage} color={p.colorHex} width={p.width} height={p.height} alt={`${title} ${i + 2}`} variant="thumb" class="h-full w-full object-cover" />
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+) : (
+  <div class="flex aspect-[4/3] items-center justify-center rounded-xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800">—</div>
+)}
+<script>
+  // Progressive enhancement: clicking a thumbnail swaps the main image instead of navigating.
+  document.querySelectorAll<HTMLElement>('[data-gallery]').forEach((gallery) => {
+    const main = gallery.querySelector<HTMLImageElement>('img');
+    gallery.querySelectorAll<HTMLAnchorElement>('[data-gallery-thumb]').forEach((thumb) => {
+      thumb.addEventListener('click', (e) => {
+        if (!main) return;
+        e.preventDefault();
+        main.src = thumb.href;
+        main.removeAttribute('srcset');
+      });
+    });
+  });
+</script>

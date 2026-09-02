@@ -1,0 +1,8 @@
+---
+import CategoryView from '../../../../views/CategoryView.astro';
+import ListingView from '../../../../views/ListingView.astro';
+import { resolveSegmentRoute } from '../../../../views/routes';
+const route = await resolveSegmentRoute(Astro);
+if (route instanceof Response) return route;
+---
+{route.kind === 'listing' ? <ListingView result={route.result} /> : <CategoryView page={route.page} />}

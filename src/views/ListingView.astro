@@ -1,0 +1,148 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/astro/Breadcrumbs.astro';
+import ListingCard from '../components/astro/ListingCard.astro';
+import PhotoGallery from '../components/astro/PhotoGallery.astro';
+import RateTable from '../components/astro/RateTable.astro';
+import { translate, localizedPath } from '../domain/i18n';
+import { categoryPath, areaPath } from '../domain/slug';
+import { maskPhone } from '../domain/phone';
+import { relativeTime } from '../domain/seo';
+import type { ListingPageResult } from '../services/listing-page.service';
+import { site } from '../../site.config';
+import { GENDER_LABELS, BODY_TYPE_LABELS, LANGUAGE_LABELS, NATIONALITIES_EN } from '../data/services';
+
+interface Props { result: Extract<ListingPageResult, { kind: 'gone' | 'ok' }> }
+const { result } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const origin = (Astro.site ?? new URL(site.url)).origin;
+const name = (row: { nameId: string; nameEn: string }) => (locale === 'en' ? row.nameEn : row.nameId);
+const gone = result.kind === 'gone' ? result : undefined;
+const page = result.kind === 'ok' ? result.page : undefined;
+const L = page?.listing;
+const bodyType = L?.bodyType && (BODY_TYPE_LABELS[locale] as Record<string, string>)[L.bodyType];
+const nationality = L?.nationality ? (locale === 'en' ? (NATIONALITIES_EN as Record<string, string>)[L.nationality] ?? L.nationality : L.nationality) : null;
+const languages = (L?.languages ?? []).map((code) => (LANGUAGE_LABELS[locale] as Record<string, string>)[code] ?? code);
+const availability = L?.availability;
+const availabilityText = availability
+  ? `${availability.days.length === 7 ? t('listing.everyDay') : availability.days.map((d) => t(`days.${d}`)).join(', ')} · ${availability.allDay ? t('listing.allDay') : `${availability.from}–${availability.to}`}`
+  : null;
+const inOut = L ? (L.incall && L.outcall ? t('listing.incallOutcall') : L.incall ? t('listing.incallOnly') : L.outcall ? t('listing.outcallOnly') : null) : null;
+---
+{gone ? (
+  <Base title={t('listing.expired.title')} description={t('listing.expired.body', { city: name(gone.city) })} path={categoryPath(gone.city.slug, gone.category.slug)} noindex>
+    <div class="container-page py-20 text-center">
+      <p class="text-6xl font-black text-zinc-300">410</p>
+      <h1 class="mt-4 text-2xl font-bold">{t('listing.expired.title')}</h1>
+      <p class="mt-2 text-zinc-600 dark:text-zinc-400">{t('listing.expired.body', { city: name(gone.city) })}</p>
+      <a href={localizedPath(locale, categoryPath(gone.city.slug, gone.category.slug))} class="btn-primary mt-6">{t('listing.expired.cta', { category: name(gone.category), city: name(gone.city) })}</a>
+    </div>
+  </Base>
+) : page && L && (
+  <Base title={page.seo.title} description={page.seo.description} path={page.canonicalPath.replace(/^\/en/, '')} ogImage={page.photos[0] ? `/img/${L.id}/${page.photos[0].id}/card.jpg` : undefined} jsonLd={page.jsonLd}>
+    <div class="container-page py-6">
+      <Breadcrumbs crumbs={page.crumbs.map((c) => ({ ...c, url: c.url.replace(origin, '') }))} />
+      {(L.status !== 'active' || L.moderation === 'hidden') && (
+        <div class="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+          {locale === 'en' ? `This ad is not public (status: ${L.status}, moderation: ${L.moderation}). Only you and admins can see it.` : `Iklan ini tidak tampil publik (status: ${L.status}, moderasi: ${L.moderation}). Hanya Anda dan admin yang bisa melihat.`}
+        </div>
+      )}
+      <div class="mt-4 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div>
+          <PhotoGallery listingId={L.id} photos={page.photos} title={L.title} />
+          <div class="mt-5 flex flex-wrap items-center gap-2">
+            {page.tier !== 'standard' && <span class="badge bg-gold-500 text-black">{page.tier === 'vip' ? t('card.vip') : t('card.featured')}</span>}
+            {L.verified && <span class="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">✓ {t('card.verified')}</span>}
+            <span class="text-xs text-zinc-500">{t('listing.bumped', { when: relativeTime(locale, L.bumpedAt ?? L.updatedAt, page.now) })}</span>
+            <span class="text-xs text-zinc-400">· {t('listing.idLabel')} {L.shortId}</span>
+          </div>
+          <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{L.title}</h1>
+          <p class="mt-1 text-sm text-zinc-500">
+            {L.age} · {GENDER_LABELS[locale][L.gender]}{nationality ? ` · ${nationality}` : ''} · {page.area ? `${name(page.area)}, ` : ''}{name(page.city)}
+          </p>
+
+          <section class="mt-6">
+            <h2 class="mb-2 text-lg font-bold">{t('listing.about')}</h2>
+            <div class="whitespace-pre-line text-[15px] leading-relaxed text-zinc-800 dark:text-zinc-200">{L.description}</div>
+          </section>
+
+          {page.services.length > 0 && (
+            <section class="mt-6">
+              <h2 class="mb-2 text-lg font-bold">{t('listing.services')}</h2>
+              <ul class="flex flex-wrap gap-2">
+                {page.services.map((s) => <li class="rounded-full bg-zinc-100 px-3 py-1 text-sm dark:bg-zinc-800">{name(s)}</li>)}
+              </ul>
+            </section>
+          )}
+
+          <section class="mt-6">
+            <h2 class="mb-2 text-lg font-bold">{t('listing.details')}</h2>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+              <div><dt class="text-zinc-500">{t('listing.age')}</dt><dd class="font-medium">{L.age}</dd></div>
+              <div><dt class="text-zinc-500">{t('listing.gender')}</dt><dd class="font-medium">{GENDER_LABELS[locale][L.gender]}</dd></div>
+              {nationality && <div><dt class="text-zinc-500">{t('listing.nationality')}</dt><dd class="font-medium">{nationality}</dd></div>}
+              {L.ethnicity && <div><dt class="text-zinc-500">{t('listing.ethnicity')}</dt><dd class="font-medium">{L.ethnicity}</dd></div>}
+              {L.heightCm && <div><dt class="text-zinc-500">{t('listing.height')}</dt><dd class="font-medium">{L.heightCm} cm</dd></div>}
+              {bodyType && <div><dt class="text-zinc-500">{t('listing.bodyType')}</dt><dd class="font-medium">{bodyType}</dd></div>}
+              {languages.length > 0 && <div><dt class="text-zinc-500">{t('listing.languages')}</dt><dd class="font-medium">{languages.join(', ')}</dd></div>}
+              {inOut && <div><dt class="text-zinc-500">{t('listing.location')}</dt><dd class="font-medium">{inOut}</dd></div>}
+              {availabilityText && <div class="col-span-2"><dt class="text-zinc-500">{t('listing.availability')}</dt><dd class="font-medium">{availabilityText}</dd></div>}
+            </dl>
+          </section>
+
+          <section class="mt-6" id="reviews">
+            <h2 class="mb-2 text-lg font-bold">{t('listing.reviews')} {page.reviews.length > 0 && <span class="text-sm font-normal text-zinc-500">({page.reviews.length})</span>}</h2>
+            {page.reviews.length === 0 ? <p class="text-sm text-zinc-500">{t('listing.noReviews')}</p> : (
+              <ul class="space-y-3">
+                {page.reviews.map((r) => (
+                  <li class="card p-3 text-sm">
+                    <div class="flex items-center justify-between"><span class="text-gold-500">{'★'.repeat(r.rating)}<span class="text-zinc-300">{'★'.repeat(5 - r.rating)}</span></span><span class="text-xs text-zinc-400">{relativeTime(locale, r.createdAt, page.now)}</span></div>
+                    <p class="mt-1">{r.body}</p>
+                    {r.posterReply && <p class="mt-2 rounded bg-zinc-50 p-2 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">↳ {r.posterReply}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div id="review-form-slot" data-listing-id={L.id}></div>
+          </section>
+
+          <p class="mt-8 rounded-lg bg-zinc-100 p-3 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('listing.safety')}</p>
+        </div>
+
+        <aside class="lg:sticky lg:top-20 lg:self-start">
+          <div class="card p-4">
+            <h2 class="text-base font-bold">{t('listing.rates')}</h2>
+            <RateTable rate1h={L.rate1h} rate2h={L.rate2h} rateOvernight={L.rateOvernight} />
+            <h2 class="mt-4 text-base font-bold">{t('listing.contact')}</h2>
+            <div id="contact-box" class="mt-2" data-listing-id={L.id} data-masked={maskPhone(L.phoneE164)} data-has-telegram={L.telegramHandle ? '1' : '0'}>
+              <div class="rounded-lg border border-dashed border-zinc-300 p-3 text-center font-mono text-lg tracking-wider text-zinc-500 dark:border-zinc-700">{maskPhone(L.phoneE164)}</div>
+              <button type="button" class="btn-primary mt-3 w-full" data-reveal-button>{t('listing.reveal')}</button>
+              <p class="mt-2 text-center text-xs text-zinc-500">{t('listing.revealHint')}</p>
+            </div>
+            <div class="mt-4 flex justify-between text-xs">
+              <button type="button" class="text-zinc-500 hover:text-brand-600" data-favorite-button data-listing-id={L.id}>♡ {t('listing.favorite')}</button>
+              <a href={`#report`} class="text-zinc-500 hover:text-red-600" data-report-button>{t('listing.report')}</a>
+            </div>
+          </div>
+          <div id="reveal-slot"></div>
+        </aside>
+      </div>
+
+      {page.related.length > 0 && (
+        <section class="mt-12">
+          <h2 class="mb-3 text-lg font-bold">{t('listing.related', { area: page.area ? name(page.area) : name(page.city) })}</h2>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {page.related.map((item) => <ListingCard item={item} now={page.now} />)}
+          </div>
+          <div class="mt-4 text-sm">
+            <a href={localizedPath(locale, page.area ? areaPath(page.city.slug, page.category.slug, page.area.slug) : categoryPath(page.city.slug, page.category.slug))} class="text-brand-600 hover:underline">{t('city.viewAll')} →</a>
+          </div>
+        </section>
+      )}
+    </div>
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 p-3 backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95" data-sticky-cta>
+      <button type="button" class="btn-primary w-full" data-reveal-button>{t('listing.reveal')} · {maskPhone(L.phoneE164)}</button>
+    </div>
+  </Base>
+)}

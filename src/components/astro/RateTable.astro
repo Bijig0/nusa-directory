@@ -1,0 +1,19 @@
+---
+import { translate } from '../../domain/i18n';
+import { formatIdr } from '../../domain/money';
+interface Props { rate1h: number | null; rate2h: number | null; rateOvernight: number | null }
+const { rate1h, rate2h, rateOvernight } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const rows = [['listing.rate1h', rate1h], ['listing.rate2h', rate2h], ['listing.rateOvernight', rateOvernight]].filter((r): r is [string, number] => typeof r[1] === 'number');
+---
+{rows.length > 0 && (
+  <dl class="divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+    {rows.map(([key, amount]) => (
+      <div class="flex items-center justify-between py-2">
+        <dt class="text-zinc-500">{t(key)}</dt>
+        <dd class="font-semibold">{formatIdr(amount, locale)}</dd>
+      </div>
+    ))}
+  </dl>
+)}

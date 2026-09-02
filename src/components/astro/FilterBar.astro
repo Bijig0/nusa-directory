@@ -1,0 +1,100 @@
+---
+import type { FilterParams } from '../../domain/search';
+import { SORTS } from '../../domain/search';
+import { translate } from '../../domain/i18n';
+import { NATIONALITIES, NATIONALITIES_EN, GENDER_LABELS } from '../../data/services';
+import type { Area } from '../../infra/db/schema';
+
+interface Props { filters: FilterParams; areas: readonly Area[]; basePath: string; areaBasePath: (areaSlug: string | undefined) => string }
+const { filters: f, areas, basePath, areaBasePath } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const hasFilters = Object.entries(f).some(([k, v]) => !['sort', 'page', 'area'].includes(k) && v !== undefined);
+---
+<form method="get" action={basePath} class="card p-3 sm:p-4" id="filters">
+  <div class="flex flex-wrap items-end gap-3">
+    <div class="min-w-[160px] flex-1">
+      <label class="label" for="q">{t('nav.search')}</label>
+      <input class="input" type="search" id="q" name="q" value={f.q ?? ''} placeholder={t('browse.searchPlaceholder')} maxlength="80" />
+    </div>
+    <div class="min-w-[150px]">
+      <label class="label" for="area">{t('browse.area')}</label>
+      <select class="input" id="area" name="area_select" data-area-select>
+        <option value="">{t('browse.allAreas')}</option>
+        {areas.map((a) => <option value={areaBasePath(a.slug)} selected={f.area === a.slug}>{locale === 'en' ? a.nameEn : a.nameId}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="sort">{t('browse.sort')}</label>
+      <select class="input" id="sort" name="sort">
+        {SORTS.map((s) => <option value={s} selected={f.sort === s}>{t(`browse.sort.${s}`)}</option>)}
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">{t('browse.apply')}</button>
+    <button type="button" class="btn-ghost text-xs" data-toggle-advanced aria-expanded="false" aria-controls="advanced-filters">{t('browse.filters')} ▾</button>
+  </div>
+  <div id="advanced-filters" class={`mt-3 grid gap-3 border-t border-zinc-200 pt-3 sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 ${hasFilters ? '' : 'hidden'}`}>
+    <fieldset>
+      <legend class="label">{t('browse.age')}</legend>
+      <div class="flex gap-2">
+        <input class="input" type="number" name="age_min" min="18" max="99" placeholder={t('browse.min')} value={f.ageMin ?? ''} />
+        <input class="input" type="number" name="age_max" min="18" max="99" placeholder={t('browse.max')} value={f.ageMax ?? ''} />
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend class="label">{t('browse.price')}</legend>
+      <div class="flex gap-2">
+        <input class="input" type="number" name="price_min" min="0" step="50000" placeholder={t('browse.min')} value={f.priceMin ?? ''} />
+        <input class="input" type="number" name="price_max" min="0" step="50000" placeholder={t('browse.max')} value={f.priceMax ?? ''} />
+      </div>
+    </fieldset>
+    <div>
+      <label class="label" for="gender">{t('browse.gender')}</label>
+      <select class="input" id="gender" name="gender">
+        <option value="">{t('browse.any')}</option>
+        {(Object.keys(GENDER_LABELS[locale]) as (keyof typeof GENDER_LABELS.id)[]).map((g) => <option value={g} selected={f.gender === g}>{GENDER_LABELS[locale][g]}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="nat">{t('browse.nationality')}</label>
+      <select class="input" id="nat" name="nat">
+        <option value="">{t('browse.any')}</option>
+        {NATIONALITIES.map((n) => <option value={n} selected={f.nationality === n}>{locale === 'en' ? NATIONALITIES_EN[n] : n}</option>)}
+      </select>
+    </div>
+    <div class="flex flex-wrap gap-4 text-sm sm:col-span-2 lg:col-span-4">
+      <label class="flex items-center gap-2"><input type="checkbox" name="incall" value="1" checked={f.incall} /> {t('browse.incall')}</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="outcall" value="1" checked={f.outcall} /> {t('browse.outcall')}</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="verified" value="1" checked={f.verified} /> {t('browse.verifiedOnly')}</label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="photos" value="1" checked={f.photos} /> {t('browse.withPhotos')}</label>
+      {hasFilters && <a href={basePath} class="ml-auto text-brand-600 hover:underline">{t('browse.reset')}</a>}
+    </div>
+  </div>
+</form>
+<script>
+  // Area is a path segment (SEO), so the select navigates instead of submitting a param.
+  const form = document.getElementById('filters') as HTMLFormElement | null;
+  const areaSelect = form?.querySelector<HTMLSelectElement>('[data-area-select]');
+  form?.addEventListener('submit', (e) => {
+    if (areaSelect?.value) {
+      e.preventDefault();
+      const params = new FormData(form);
+      params.delete('area_select');
+      const qs = new URLSearchParams();
+      for (const [k, v] of params.entries()) if (typeof v === 'string' && v !== '' && v !== 'bumped') qs.set(k, v);
+      const query = qs.toString();
+      location.href = areaSelect.value + (query ? `?${query}` : '');
+    } else {
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input,select').forEach((el) => {
+        if (el.name === 'area_select' || (el.value === '' ) || (el.name === 'sort' && el.value === 'bumped')) el.disabled = true;
+      });
+    }
+  });
+  form?.querySelector('[data-toggle-advanced]')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const panel = document.getElementById('advanced-filters');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded', String(!panel.classList.contains('hidden')));
+  });
+</script>

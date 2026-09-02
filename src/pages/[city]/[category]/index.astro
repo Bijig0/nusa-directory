@@ -1,0 +1,7 @@
+---
+import CategoryView from '../../../views/CategoryView.astro';
+import { resolveCategoryRoute } from '../../../views/routes';
+const page = await resolveCategoryRoute(Astro);
+if (page instanceof Response) return page;
+---
+<CategoryView page={page} />

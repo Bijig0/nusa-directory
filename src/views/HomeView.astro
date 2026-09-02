@@ -1,49 +1,72 @@
 ---
 import Base from '../layouts/Base.astro';
+import ListingCard from '../components/astro/ListingCard.astro';
 import { site } from '../../site.config';
 import { translate, localizedPath } from '../domain/i18n';
-import { citySeeds } from '../data/cities';
-import { categorySeeds } from '../data/categories';
+import { websiteAndOrg } from '../domain/seo';
+import { cityPath, categoryPath } from '../domain/slug';
+import { loadGeo } from '../infra/db/repos/geo';
+import { listingCounts, vipListings, latestListings } from '../infra/db/repos/listings';
 
-const { locale, dict } = Astro.locals;
+const { locale, dict, deps } = Astro.locals;
 const t = translate(dict);
-const cityName = (c: (typeof citySeeds)[number]) => (locale === 'en' && c.nameEn) || c.nameId;
-const catName = (c: (typeof categorySeeds)[number]) => (locale === 'en' ? c.nameEn : c.nameId);
-const catDesc = (c: (typeof categorySeeds)[number]) => (locale === 'en' ? c.descEn : c.descId);
+const now = deps.clock.now();
+const [geo, counts, vip, latest] = await Promise.all([loadGeo(deps.db), listingCounts(deps.db), vipListings(deps.db, now, undefined, 6), latestListings(deps.db, undefined, 9)]);
+const name = (row: { nameId: string; nameEn: string }) => (locale === 'en' ? row.nameEn : row.nameId);
+const desc = (row: { descId: string; descEn: string }) => (locale === 'en' ? row.descEn : row.descId);
+const countByCity = new Map<string, number>();
+for (const r of counts) countByCity.set(r.cityId, (countByCity.get(r.cityId) ?? 0) + r.n);
 const title = t('home.title', { brand: site.name });
-const description = t('home.description', { cityCount: citySeeds.length });
+const description = t('home.description', { cityCount: geo.cities.length });
 const origin = (Astro.site ?? new URL(site.url)).origin;
-const jsonLd = [
-  { '@context': 'https://schema.org', '@type': 'WebSite', name: site.name, url: origin, inLanguage: locale },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: site.name, url: origin },
-];
+const jsonLd = websiteAndOrg({ brand: site.name, origin, locale, searchPath: localizedPath(locale, categoryPath(site.defaultCitySlug, geo.categories[0]?.slug ?? 'escorts')) });
+if (!Astro.cookies.has('sid')) Astro.response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 ---
 <Base title={title} description={description} path="/" jsonLd={jsonLd}>
   <section class="bg-gradient-to-b from-brand-50 to-transparent dark:from-brand-950/30">
     <div class="container-page py-10 sm:py-14">
       <h1 class="text-3xl font-black tracking-tight sm:text-4xl">{t('home.h1')}</h1>
       <p class="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">{t('home.intro')}</p>
+      <form method="get" action={localizedPath(locale, categoryPath(site.defaultCitySlug, geo.categories[0]?.slug ?? 'escorts'))} class="mt-5 flex max-w-xl gap-2" role="search">
+        <input class="input" type="search" name="q" placeholder={t('browse.searchPlaceholder')} maxlength="80" />
+        <button class="btn-primary" type="submit">{t('nav.search')}</button>
+      </form>
     </div>
   </section>
   <section class="container-page py-6">
     <h2 class="mb-3 text-lg font-bold">{t('home.categories')}</h2>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {categorySeeds.map((cat) => (
-        <a href={localizedPath(locale, `/${site.defaultCitySlug}/${cat.slug}/`)} class="card p-4 transition hover:border-brand-400">
-          <div class="font-semibold">{catName(cat)}</div>
-          <p class="mt-1 text-xs text-zinc-500">{catDesc(cat)}</p>
+      {geo.categories.map((cat) => (
+        <a href={localizedPath(locale, categoryPath(site.defaultCitySlug, cat.slug))} class="card p-4 transition hover:border-brand-400">
+          <div class="font-semibold">{name(cat)}</div>
+          <p class="mt-1 text-xs text-zinc-500">{desc(cat)}</p>
         </a>
       ))}
     </div>
   </section>
+  {vip.length > 0 && (
+    <section class="container-page py-6">
+      <h2 class="mb-3 text-lg font-bold">{t('home.vip')}</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{vip.map((item, i) => <ListingCard item={item} now={now} priority={i < 2} />)}</div>
+    </section>
+  )}
   <section class="container-page py-6">
     <h2 class="mb-3 text-lg font-bold">{t('home.pickCity')}</h2>
     <ul class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {citySeeds.map((city) => (
+      {geo.cities.map((city) => (
         <li>
-          <a href={localizedPath(locale, `/${city.slug}/`)} class="card block px-3 py-2 text-sm font-medium transition hover:border-brand-400">{cityName(city)}</a>
+          <a href={localizedPath(locale, cityPath(city.slug))} class="card flex items-center justify-between px-3 py-2 text-sm font-medium transition hover:border-brand-400">
+            <span>{name(city)}</span>
+            {(countByCity.get(city.id) ?? 0) > 0 && <span class="text-xs text-zinc-400">{countByCity.get(city.id)}</span>}
+          </a>
         </li>
       ))}
     </ul>
   </section>
+  {latest.length > 0 && (
+    <section class="container-page py-6">
+      <h2 class="mb-3 text-lg font-bold">{t('home.latest')}</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{latest.map((item) => <ListingCard item={item} now={now} />)}</div>
+    </section>
+  )}
 </Base>

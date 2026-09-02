@@ -1,0 +1,7 @@
+---
+import CityView from '../../views/CityView.astro';
+import { resolveCityRoute } from '../../views/routes';
+const page = await resolveCityRoute(Astro);
+if (page instanceof Response) return page;
+---
+<CityView page={page} />

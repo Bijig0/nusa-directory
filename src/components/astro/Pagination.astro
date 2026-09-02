@@ -1,0 +1,20 @@
+---
+import type { Pagination } from '../../domain/search';
+import { translate } from '../../domain/i18n';
+interface Props { pagination: Pagination; hrefFor: (page: number) => string }
+const { pagination: p, hrefFor } = Astro.props;
+const t = translate(Astro.locals.dict);
+if (p.totalPages <= 1) return;
+const window = 2;
+const pages = Array.from({ length: p.totalPages }, (_, i) => i + 1).filter((n) => n === 1 || n === p.totalPages || Math.abs(n - p.page) <= window);
+---
+<nav class="mt-8 flex items-center justify-center gap-1 text-sm" aria-label="Pagination">
+  {p.hasPrev && <a href={hrefFor(p.page - 1)} rel="prev" class="btn-secondary">‹ {t('browse.prev')}</a>}
+  {pages.map((n, i) => (
+    <>
+      {i > 0 && pages[i - 1]! < n - 1 && <span class="px-1 text-zinc-400">…</span>}
+      {n === p.page ? <span aria-current="page" class="btn-primary">{n}</span> : <a href={hrefFor(n)} class="btn-ghost">{n}</a>}
+    </>
+  ))}
+  {p.hasNext && <a href={hrefFor(p.page + 1)} rel="next" class="btn-secondary">{t('browse.next')} ›</a>}
+</nav>

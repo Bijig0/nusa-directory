@@ -1,0 +1,47 @@
+---
+import type { ListingCard } from '../../infra/db/repos/listings';
+import { translate, localizedPath } from '../../domain/i18n';
+import { listingPath } from '../../domain/slug';
+import { formatIdrCompact } from '../../domain/money';
+import { tierOf } from '../../domain/listing';
+import { relativeTime } from '../../domain/seo';
+import { GENDER_LABELS } from '../../data/services';
+import PhotoImg from './PhotoImg.astro';
+
+interface Props { item: ListingCard; now: Date; priority?: boolean }
+const { item, now, priority = false } = Astro.props;
+const { locale, dict } = Astro.locals;
+const t = translate(dict);
+const href = localizedPath(locale, listingPath(item.citySlug, item.categorySlug, item.slug, item.shortId));
+const tier = tierOf({ featuredUntil: item.featuredUntil, vipUntil: item.vipUntil }, now);
+const areaName = locale === 'en' ? item.areaNameEn : item.areaNameId;
+const cityName = locale === 'en' ? item.cityNameEn : item.cityNameId;
+const when = item.bumpedAt ?? item.publishedAt;
+const isNew = item.publishedAt !== null && now.getTime() - item.publishedAt.getTime() < 48 * 3600 * 1000;
+const border = tier === 'vip' ? 'border-gold-500 ring-1 ring-gold-400/60' : tier === 'featured' ? 'border-gold-400/70' : 'border-zinc-200 dark:border-zinc-800';
+---
+<a href={href} class={`card group flex overflow-hidden ${border} transition hover:shadow-md`} data-listing-id={item.id}>
+  <div class="relative aspect-[3/4] w-28 shrink-0 overflow-hidden bg-zinc-100 sm:w-36 dark:bg-zinc-800">
+    <PhotoImg listingId={item.id} photoId={item.coverPhotoId} storage={item.coverStorage} color={item.coverColor} width={item.coverWidth} height={item.coverHeight} alt={item.title} variant="thumb" priority={priority} class="h-full w-full object-cover transition group-hover:scale-105" />
+    {item.photoCount !== null && item.photoCount > 1 && (
+      <span class="absolute bottom-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">{t('card.photos', { count: item.photoCount })}</span>
+    )}
+    {tier !== 'standard' && (
+      <span class={`absolute left-1 top-1 badge ${tier === 'vip' ? 'bg-gold-500 text-black' : 'bg-gold-400/90 text-black'}`}>{tier === 'vip' ? t('card.vip') : t('card.featured')}</span>
+    )}
+  </div>
+  <div class="flex min-w-0 flex-1 flex-col p-3">
+    <div class="flex items-start justify-between gap-2">
+      <h3 class="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-brand-600">{item.title}</h3>
+      {item.verified && <span class="badge shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" title={t('card.verified')}>✓ {t('card.verified')}</span>}
+    </div>
+    <p class="mt-1 text-xs text-zinc-500">
+      {item.age} · {GENDER_LABELS[locale][item.gender ?? 'female']}{item.nationality ? ` · ${item.nationality}` : ''}
+    </p>
+    <p class="mt-0.5 truncate text-xs text-zinc-500">{[areaName, cityName].filter(Boolean).join(', ')}</p>
+    <div class="mt-auto flex items-end justify-between pt-2">
+      <span class="text-sm font-bold text-brand-700 dark:text-brand-300">{item.rate1h ? `${formatIdrCompact(item.rate1h, locale)}${t('card.perHour')}` : ''}</span>
+      <span class="text-[11px] text-zinc-400">{isNew ? <span class="badge bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{t('card.new')}</span> : when ? relativeTime(locale, when, now) : ''}</span>
+    </div>
+  </div>
+</a>
