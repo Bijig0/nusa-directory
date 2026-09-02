@@ -1,0 +1,72 @@
+---
+/** Server wrapper: builds options, labels and initial data for the PostingWizard island. */
+import PostingWizard, { type WizardData } from '../islands/PostingWizard/index';
+import { translate, localizedPath } from '../../domain/i18n';
+import { listingPath } from '../../domain/slug';
+import { loadGeo, cityById, categoryById } from '../../infra/db/repos/geo';
+import { listingPhotosOf, listingServiceIds } from '../../infra/db/repos/listings';
+import { photoLimitOf } from '../../services/listing.service';
+import { NATIONALITIES, NATIONALITIES_EN, ETHNICITIES, BODY_TYPES, BODY_TYPE_LABELS, LANGUAGES, LANGUAGE_LABELS, GENDER_LABELS } from '../../data/services';
+import { site } from '../../../site.config';
+import type { Listing } from '../../infra/db/schema';
+
+interface Props { listing?: Listing }
+const { listing } = Astro.props;
+const { locale, dict, deps } = Astro.locals;
+const t = translate(dict);
+const geo = await loadGeo(deps.db);
+const name = (row: { nameId: string; nameEn: string }) => (locale === 'en' ? row.nameEn : row.nameId);
+const now = deps.clock.now();
+const [photos, serviceIds] = listing ? await Promise.all([listingPhotosOf(deps.db, listing.id), listingServiceIds(deps.db, listing.id)]) : [[], []];
+
+const initial: WizardData = listing
+  ? {
+      categoryId: listing.categoryId, cityId: listing.cityId, areaId: listing.areaId ?? '', title: listing.title, description: listing.description, age: String(listing.age), gender: listing.gender,
+      nationality: listing.nationality ?? '', ethnicity: listing.ethnicity ?? '', heightCm: listing.heightCm ? String(listing.heightCm) : '', bodyType: listing.bodyType ?? '', languages: listing.languages, serviceIds,
+      rate1h: listing.rate1h ? String(listing.rate1h) : '', rate2h: listing.rate2h ? String(listing.rate2h) : '', rateOvernight: listing.rateOvernight ? String(listing.rateOvernight) : '',
+      incall: listing.incall, outcall: listing.outcall, availability: listing.availability ?? { days: [0, 1, 2, 3, 4, 5, 6], from: '10:00', to: '02:00', allDay: false },
+      phone: listing.phoneE164, whatsapp: listing.whatsappE164 ?? '', telegram: listing.telegramHandle ?? '',
+    }
+  : {
+      categoryId: geo.categories[0]?.id ?? '', cityId: geo.cities.find((c) => c.slug === site.defaultCitySlug)?.id ?? geo.cities[0]?.id ?? '', areaId: '', title: '', description: '', age: '', gender: 'female',
+      nationality: 'Indonesia', ethnicity: '', heightCm: '', bodyType: '', languages: ['id'], serviceIds: [], rate1h: '', rate2h: '', rateOvernight: '', incall: false, outcall: true,
+      availability: { days: [0, 1, 2, 3, 4, 5, 6], from: '10:00', to: '02:00', allDay: false }, phone: '', whatsapp: '', telegram: '',
+    };
+
+const options = {
+  categories: geo.categories.map((c) => ({ value: c.id, label: name(c) })),
+  cities: geo.cities.map((c) => ({ value: c.id, label: name(c) })),
+  areas: [...geo.areasByCity.entries()].flatMap(([cityId, areas]) => areas.map((a) => ({ value: a.id, label: name(a), cityId }))),
+  services: geo.services.map((s) => ({ value: s.id, label: name(s), scope: s.categoryScope })),
+  genders: (Object.keys(GENDER_LABELS[locale]) as (keyof typeof GENDER_LABELS.id)[]).map((g) => ({ value: g, label: GENDER_LABELS[locale][g] })),
+  nationalities: NATIONALITIES.map((n) => ({ value: n, label: locale === 'en' ? NATIONALITIES_EN[n] : n })),
+  ethnicities: ETHNICITIES.map((e) => ({ value: e, label: e })),
+  bodyTypes: BODY_TYPES.map((b) => ({ value: b, label: BODY_TYPE_LABELS[locale][b] })),
+  languages: LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[locale][l] })),
+};
+const labels = {
+  steps: [1, 2, 3, 4, 5, 6].map((n) => t(`wiz.s${n}`)), step: t('wiz.step'), next: t('wiz.next'), back: t('wiz.back'), saveDraft: t('wiz.saveDraft'), publish: t('wiz.publish'), saving: t('wiz.saving'), saved: t('wiz.saved'), published: t('wiz.published'), viewListing: t('wiz.viewListing'),
+  category: t('wiz.category'), city: t('wiz.city'), area: t('wiz.area'), title: t('wiz.title.label'), titleHint: t('wiz.title.hint'), description: t('wiz.description'), descriptionHint: t('wiz.description.hint'), age: t('wiz.age'), gender: t('wiz.gender'),
+  nationality: t('wiz.nationality'), ethnicity: t('wiz.ethnicity'), height: t('wiz.height'), bodyType: t('wiz.bodyType'), languages: t('wiz.languages'), services: t('wiz.services'), rate1h: t('wiz.rate1h'), rate2h: t('wiz.rate2h'), rateOvernight: t('wiz.rateOvernight'),
+  incall: t('wiz.incall'), outcall: t('wiz.outcall'), availability: t('wiz.availability'), allDay: t('wiz.allDay'), from: t('wiz.from'), to: t('wiz.to'), days: t('wiz.days'), dayNames: [0, 1, 2, 3, 4, 5, 6].map((d) => t(`days.${d}`)),
+  phone: t('wiz.phone'), whatsapp: t('wiz.whatsapp'), telegram: t('wiz.telegram'), contactHint: t('wiz.contactHint'), declaration: t('wiz.declaration'), declarationRequired: t('wiz.declarationRequired'), optional: t('wiz.optional'),
+  errors: { phone_taken: t('wiz.err.phone_taken'), free_limit: t('wiz.err.free_limit'), validation: t('wiz.err.validation'), generic: t('wiz.err.generic') },
+  uploader: { hint: t('wiz.photos.hint'), needSave: t('wiz.photos.needSave'), upload: t('wiz.photos.upload'), uploading: t('wiz.photos.uploading'), remove: t('wiz.photos.remove'), cover: t('wiz.photos.cover'), error: t('wiz.photos.error') },
+};
+const city = listing ? cityById(geo, listing.cityId) : undefined;
+const category = listing ? categoryById(geo, listing.categoryId) : undefined;
+const viewPath = listing && city && category ? localizedPath(locale, listingPath(city.slug, category.slug, listing.slug, listing.shortId)) : null;
+---
+<PostingWizard
+  client:only="preact"
+  listingId={listing?.id ?? null}
+  initial={initial}
+  initialPhotos={photos.map((p) => ({ id: p.id, url: `/img/${p.listingId}/${p.id}/card.jpg`, width: p.width, height: p.height }))}
+  status={listing?.status ?? null}
+  photoLimit={listing ? photoLimitOf(listing, now) : site.photoLimits.standard}
+  options={options}
+  labels={labels}
+  viewPath={viewPath}
+>
+  <div slot="fallback" class="card p-6 text-sm text-zinc-500">…</div>
+</PostingWizard>

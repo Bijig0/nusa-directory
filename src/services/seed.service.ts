@@ -67,10 +67,12 @@ export const runSeed = async (deps: Deps): Promise<SeedSummary> => {
   await insertAll(db.insert(products), productSeeds.map((p) => ({ ...p, isActive: true, updatedAt: now })), 10);
 
   // Users: 1 admin (matches ADMIN_IDENTITIES default) + 2 posters.
+  // One admin, two named posters used by the tests, plus anonymous posters so nobody exceeds the free active cap.
   const userDefs = [
     { id: 'user_admin', name: 'Admin', phone: '+6281200000001', email: 'admin@example.com' },
     { id: 'user_poster1', name: 'Sari Agency', phone: '+6281200000002', email: 'poster1@example.com' },
     { id: 'user_poster2', name: 'Dewi', phone: '+6281200000003', email: 'poster2@example.com' },
+    ...Array.from({ length: 20 }, (_, i) => ({ id: `user_seed${i + 1}`, name: `Poster ${i + 1}`, phone: `+62812000001${String(i).padStart(2, '0')}`, email: `seed${i + 1}@example.com` })),
   ];
   await insertAll(db.insert(wallets), userDefs.map((u) => ({ id: `wallet_${u.id}`, kind: 'user' as const, balance: 0, createdAt: now, updatedAt: now })), 5);
   await insertAll(db.insert(users), userDefs.map((u) => ({ id: u.id, displayName: u.name, walletId: `wallet_${u.id}`, createdAt: now, status: 'active' as const })), 6);
@@ -126,7 +128,7 @@ export const runSeed = async (deps: Deps): Promise<SeedSummary> => {
     const expired = index % 17 === 16; // a few expired listings for 410 testing
     const photoCount = 1 + Math.floor(rnd() * 5);
     const rate1h = catId === 'cat_massage' ? 250_000 + Math.floor(rnd() * 6) * 50_000 : 500_000 + Math.floor(rnd() * 20) * 100_000;
-    const owner = index % 3 === 0 ? 'user_poster2' : 'user_poster1';
+    const owner = index < 2 ? 'user_poster1' : index < 4 ? 'user_poster2' : `user_seed${(index % 20) + 1}`;
     const photoIds = Array.from({ length: photoCount }, () => newId());
     listingRows.push({
       id, shortId, ownerUserId: owner, categoryId: catId, cityId: city.id, areaId: `area_${city.slug}_${area.slug}`.replaceAll('-', '_'),

@@ -57,18 +57,29 @@ export const deleteSessionsOfUser = (db: Db, userId: string) => db.delete(sessio
  */
 export const mergeDeviceIntoUser = async (db: Db, deviceId: string, deviceWalletId: string, user: User, now: Date): Promise<void> => {
   if (deviceWalletId === user.walletId) return;
+  const deviceWallet = await db.select({ balance: wallets.balance, mergedInto: wallets.mergedIntoWalletId }).from(wallets).where(eq(wallets.id, deviceWalletId)).get();
+  if (!deviceWallet || deviceWallet.mergedInto) {
+    await db.update(devices).set({ walletId: user.walletId, userId: user.id, lastSeenAt: now }).where(eq(devices.id, deviceId));
+    return;
+  }
+  const balance = deviceWallet.balance;
   const ts = now.getTime();
   await db.batch([
-    db.run(sql`UPDATE wallets SET balance = balance + (SELECT balance FROM wallets WHERE id = ${deviceWalletId}), updated_at = ${ts} WHERE id = ${user.walletId}`),
-    db.run(sql`INSERT INTO wallet_ledger (id, wallet_id, delta, reason, ref_type, ref_id, created_at)
-               SELECT ${newId(ts)}, ${user.walletId}, balance, 'merge_in', 'wallet', ${deviceWalletId}, ${ts} FROM wallets WHERE id = ${deviceWalletId} AND balance > 0`),
-    db.run(sql`INSERT INTO wallet_ledger (id, wallet_id, delta, reason, ref_type, ref_id, created_at)
-               SELECT ${newId(ts + 1)}, ${deviceWalletId}, -balance, 'merge_out', 'wallet', ${user.walletId}, ${ts} FROM wallets WHERE id = ${deviceWalletId} AND balance > 0`),
-    db.run(sql`INSERT OR IGNORE INTO reveals (id, wallet_id, listing_id, kind, created_at)
-               SELECT lower(hex(randomblob(13))), ${user.walletId}, listing_id, 'merged', created_at FROM reveals WHERE wallet_id = ${deviceWalletId}`),
-    db.run(sql`INSERT OR IGNORE INTO favorites (wallet_id, listing_id, created_at) SELECT ${user.walletId}, listing_id, created_at FROM favorites WHERE wallet_id = ${deviceWalletId}`),
-    db.run(sql`UPDATE OR IGNORE reviews SET wallet_id = ${user.walletId} WHERE wallet_id = ${deviceWalletId}`),
-    db.run(sql`UPDATE wallets SET balance = 0, merged_into_wallet_id = ${user.walletId}, updated_at = ${ts} WHERE id = ${deviceWalletId}`),
+    db.insert(reveals)
+      .select(db.select({ id: sql<string>`lower(hex(randomblob(13)))`, walletId: sql<string>`${user.walletId}`, listingId: reveals.listingId, kind: sql<string>`'merged'`, createdAt: reveals.createdAt }).from(reveals).where(eq(reveals.walletId, deviceWalletId)))
+      .onConflictDoNothing(),
+    db.insert(favorites)
+      .select(db.select({ walletId: sql<string>`${user.walletId}`, listingId: favorites.listingId, createdAt: favorites.createdAt }).from(favorites).where(eq(favorites.walletId, deviceWalletId)))
+      .onConflictDoNothing(),
+    db.update(reviews).set({ walletId: user.walletId }).where(and(eq(reviews.walletId, deviceWalletId), sql`NOT EXISTS (SELECT 1 FROM reviews r2 WHERE r2.listing_id = ${reviews.listingId} AND r2.wallet_id = ${user.walletId})`)),
+    db.update(wallets).set({ balance: sql`${wallets.balance} + ${balance}`, updatedAt: now }).where(eq(wallets.id, user.walletId)),
+    ...(balance > 0
+      ? [
+          db.insert(walletLedger).values({ id: newId(ts), walletId: user.walletId, delta: balance, reason: 'merge_in', refType: 'wallet', refId: deviceWalletId, createdAt: now }),
+          db.insert(walletLedger).values({ id: newId(ts + 1), walletId: deviceWalletId, delta: -balance, reason: 'merge_out', refType: 'wallet', refId: user.walletId, createdAt: now }),
+        ]
+      : []),
+    db.update(wallets).set({ balance: 0, mergedIntoWalletId: user.walletId, updatedAt: now }).where(eq(wallets.id, deviceWalletId)),
     db.update(devices).set({ walletId: user.walletId, userId: user.id, lastSeenAt: now }).where(eq(devices.id, deviceId)),
   ]);
 };

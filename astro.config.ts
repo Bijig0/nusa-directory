@@ -42,6 +42,8 @@ export default defineConfig({
             'arctic',
             'zod',
           ],
+          // WASM-backed packages must not be pre-bundled (their .wasm imports need the Cloudflare plugin's module rules).
+          exclude: ['@cf-wasm/photon'],
           ignoreOutdatedRequests: true,
         },
       },

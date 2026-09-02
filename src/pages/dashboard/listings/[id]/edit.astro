@@ -1,0 +1,13 @@
+---
+import Dashboard from '../../../../layouts/Dashboard.astro';
+import WizardIsland from '../../../../components/astro/WizardIsland.astro';
+import { translate } from '../../../../domain/i18n';
+import { ownedListing } from '../../../../services/listing.service';
+const { dict, deps, user, isAdmin } = Astro.locals;
+const t = translate(dict);
+const r = await ownedListing(deps, user!, Astro.params.id ?? '', isAdmin);
+if (!r.ok) return new Response(null, { status: r.error.kind === 'forbidden' ? 403 : 404 });
+---
+<Dashboard title={t('wiz.editTitle')} active="listings">
+  <WizardIsland listing={r.value} />
+</Dashboard>
