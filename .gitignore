@@ -1,11 +1,12 @@
 node_modules/
 dist/
 .astro/
-.wrangler/
-.dev.vars
+.vercel/
+.data/
 .env
+.env.*
+!.env.example
 *.local
-worker-configuration.d.ts
 test-results/
 playwright-report/
 coverage/

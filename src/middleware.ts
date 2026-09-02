@@ -1,9 +1,9 @@
 import { defineMiddleware, sequence } from 'astro:middleware';
 import { getActionContext } from 'astro:actions';
-import { env } from 'cloudflare:workers';
 import { getDict } from './i18n';
 import { defaultLocale, isLocale } from './domain/i18n';
 import { makeDeps } from './infra/env';
+import { loadEnv } from './infra/config';
 import { resolveSession } from './services/auth.service';
 
 const locale = defineMiddleware((context, next) => {
@@ -26,7 +26,7 @@ const trailingSlash = defineMiddleware((context, next) => {
 });
 
 const deps = defineMiddleware((context, next) => {
-  context.locals.deps = makeDeps(env, context.locals.cfContext);
+  context.locals.deps = makeDeps(loadEnv());
   context.locals.isAdmin = false;
   return next();
 });

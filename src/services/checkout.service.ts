@@ -7,6 +7,7 @@ import { applyBoost, ORDER_TTL_MINUTES } from '../domain/boost';
 import { isMidtransNotification, mapTransactionStatus, verifySignature, type MidtransNotification } from '../domain/midtrans';
 import { midtransClient } from '../infra/payments/midtrans';
 import { sql } from 'drizzle-orm';
+import { changesOf } from '../infra/db/client';
 import { findProductByCode, activeProducts } from '../infra/db/repos/products';
 import { findOrder, insertOrder, recordPaymentEvent, updateOrder } from '../infra/db/repos/orders';
 import { addLedger, creditWallet } from '../infra/db/repos/wallets';
@@ -88,7 +89,7 @@ export const fulfillOrder = async (deps: Deps, orderId: string, payment: { trans
   const claimed = await deps.db.run(
     sql`UPDATE orders SET status = 'paid', paid_at = ${now.getTime()}, midtrans_transaction_id = ${payment.transactionId}, payment_type = ${payment.paymentType}, updated_at = ${now.getTime()} WHERE id = ${orderId} AND status = 'pending'`,
   );
-  if (Number(claimed.meta.changes ?? 0) !== 1) return (await findOrder(deps.db, orderId)) ? 'already' : 'not_found';
+  if (changesOf(claimed) !== 1) return (await findOrder(deps.db, orderId)) ? 'already' : 'not_found';
   const order = (await findOrder(deps.db, orderId))!;
 
   if (order.credits && order.credits > 0) {

@@ -1,5 +1,5 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
-import type { Db } from '../client';
+import { changesOf, type Db } from '../client';
 import { orders, paymentEvents, type Order } from '../schema';
 
 export const insertOrder = (db: Db, row: typeof orders.$inferInsert) => db.insert(orders).values(row);
@@ -14,5 +14,5 @@ export const expirePendingOrders = (db: Db, now: Date) =>
 /** Records a webhook delivery; returns false when this exact (transaction, status) was already seen. */
 export const recordPaymentEvent = async (db: Db, row: typeof paymentEvents.$inferInsert): Promise<boolean> => {
   const r = await db.insert(paymentEvents).values(row).onConflictDoNothing().run();
-  return Number(r.meta.changes ?? 0) === 1;
+  return changesOf(r) === 1;
 };

@@ -5,11 +5,11 @@
     "paths": { "@/*": ["src/*"] },
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "types": ["./worker-configuration.d.ts"],
+    "types": ["node"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
     "verbatimModuleSyntax": true
   },
-  "include": [".astro/types.d.ts", "src/**/*", "scripts/**/*", "tests/**/*", "site.config.ts", "worker-configuration.d.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": [".astro/types.d.ts", "src/**/*", "scripts/**/*", "tests/**/*", "site.config.ts"],
+  "exclude": ["dist", "node_modules", ".vercel"]
 }

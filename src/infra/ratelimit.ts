@@ -1,5 +1,6 @@
-import { sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
+import { rateWindows } from './db/schema';
 
 export interface RateLimiter {
   /** Counts a hit for `key` in the current fixed window; returns whether it is within `limit`. */
@@ -10,20 +11,21 @@ export interface RateLimiter {
 
 const windowStart = (now: Date, windowSeconds: number): number => Math.floor(now.getTime() / 1000 / windowSeconds) * windowSeconds;
 
-/** Fixed-window counters stored in D1. Fine for OTP/reveal abuse limits; not for per-second limits. */
+/** Fixed-window counters stored in the database. Fine for OTP/reveal abuse limits; not for per-second limits. */
 export const d1RateLimiter = (db: Db): RateLimiter => ({
   hit: async (key, limit, windowSeconds, now) => {
     const ws = windowStart(now, windowSeconds);
-    const row = await db.get<{ count: number }>(
-      sql`INSERT INTO rate_windows (key, window_start, count) VALUES (${key}, ${ws}, 1)
-          ON CONFLICT(key, window_start) DO UPDATE SET count = count + 1 RETURNING count`,
-    );
-    const count = Number(row?.count ?? 1);
+    const rows = await db
+      .insert(rateWindows)
+      .values({ key, windowStart: ws, count: 1 })
+      .onConflictDoUpdate({ target: [rateWindows.key, rateWindows.windowStart], set: { count: sql`${rateWindows.count} + 1` } })
+      .returning({ count: rateWindows.count });
+    const count = Number(rows[0]?.count ?? 1);
     return { allowed: count <= limit, count };
   },
   peek: async (key, windowSeconds, now) => {
     const ws = windowStart(now, windowSeconds);
-    const row = await db.get<{ count: number }>(sql`SELECT count FROM rate_windows WHERE key = ${key} AND window_start = ${ws}`);
+    const row = await db.select({ count: rateWindows.count }).from(rateWindows).where(and(eq(rateWindows.key, key), eq(rateWindows.windowStart, ws))).get();
     return Number(row?.count ?? 0);
   },
 });

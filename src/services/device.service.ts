@@ -35,7 +35,7 @@ export const ensureDevice = async (deps: Deps, cookies: AstroCookies, request: R
     deps.waitUntil(touchDevice(deps.db, existing.id, now).run());
     return existing;
   }
-  const ip = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? '0.0.0.0';
+  const ip = clientIp(request);
   const ua = request.headers.get('user-agent') ?? '';
   const [ipHash, uaHash] = await Promise.all([deps.hashForAbuse(ip), deps.hashForAbuse(ua)]);
   const device = await createDeviceWithWallet(deps.db, now, { ipHash, uaHash });
@@ -43,7 +43,8 @@ export const ensureDevice = async (deps: Deps, cookies: AstroCookies, request: R
   return device;
 };
 
-export const clientIp = (request: Request): string => request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '0.0.0.0';
+export const clientIp = (request: Request): string =>
+  request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('cf-connecting-ip') ?? '0.0.0.0';
 
 export const walletBalance = async (deps: Deps, walletId: string | undefined): Promise<number> => {
   if (!walletId) return 0;

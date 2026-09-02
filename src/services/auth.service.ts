@@ -173,7 +173,7 @@ export const startSession = async (deps: Deps, cookies: AstroCookies, request: R
   const now = deps.clock.now();
   const s = await createSessionToken(now);
   const [ipHash, uaHash] = await Promise.all([
-    deps.hashForAbuse(request.headers.get('cf-connecting-ip') ?? '0.0.0.0'),
+    deps.hashForAbuse(request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '0.0.0.0'),
     deps.hashForAbuse(request.headers.get('user-agent') ?? ''),
   ]);
   await insertSession(deps.db, { id: s.id, userId: user.id, expiresAt: s.expiresAt, createdAt: now, lastSeenAt: now, ipHash, uaHash }).run();

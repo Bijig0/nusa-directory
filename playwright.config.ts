@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'bun run preview',
+        command: 'bun run dev',
         url: 'http://localhost:4321/',
         reuseExistingServer: true,
         timeout: 120_000,

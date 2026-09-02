@@ -5,7 +5,7 @@ import { photoKey, PHOTO_VARIANTS, type PhotoVariant } from '../../../../infra/s
 
 export const prerender = false;
 
-const IMMUTABLE = 'public, max-age=31536000, immutable';
+const IMMUTABLE = 'public, max-age=31536000, s-maxage=31536000, immutable';
 
 const placeholderSvg = (color: string, width: number, height: number, label: string): string =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
@@ -16,7 +16,7 @@ const placeholderSvg = (color: string, width: number, height: number, label: str
 export const GET: APIRoute = async ({ params, locals }) => {
   const { listingId, photoId, variant } = params;
   if (!listingId || !photoId || !variant || !(PHOTO_VARIANTS as readonly string[]).includes(variant)) return new Response(null, { status: 404 });
-  const { db, env } = locals.deps;
+  const { db, photos } = locals.deps;
   const photo = await db
     .select({ storage: listingPhotos.storage, color: listingPhotos.colorHex, width: listingPhotos.width, height: listingPhotos.height })
     .from(listingPhotos)
@@ -30,12 +30,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': IMMUTABLE } });
   }
 
-  const object = await env.PHOTOS.get(photoKey(listingId, photoId, variant as PhotoVariant));
+  const object = await photos.get(photoKey(listingId, photoId, variant as PhotoVariant));
   if (!object) return new Response(null, { status: 404 });
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('ETag', object.httpEtag);
-  headers.set('Cache-Control', IMMUTABLE);
-  headers.set('Content-Type', 'image/jpeg');
-  return new Response(object.body, { headers });
+  const headers = new Headers({ 'Content-Type': object.contentType || 'image/jpeg', 'Cache-Control': IMMUTABLE });
+  if (object.etag) headers.set('ETag', object.etag);
+  return new Response(object.body as BodyInit, { headers });
 };

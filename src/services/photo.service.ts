@@ -2,8 +2,8 @@ import type { Deps } from '../infra/env';
 import { err, ok, type Result } from '../domain/result';
 import { readImageInfo, readJpegOrientation, rotationFor, MAX_UPLOAD_BYTES, MAX_PIXELS } from '../domain/images';
 import { newId } from '../domain/ids';
-import { photonProcessor } from '../infra/images/photon';
-import { r2PhotoStore, photoKey, PHOTO_VARIANTS } from '../infra/storage/r2';
+import { sharpProcessor } from '../infra/images/sharp';
+import { photoKey, PHOTO_VARIANTS } from '../infra/storage/r2';
 import { deletePhotoRow, findPhoto, insertPhoto, nextPhotoPosition, reorderPhotos, syncPhotoSummary } from '../infra/db/repos/listing-write';
 import { listingPhotosOf } from '../infra/db/repos/listings';
 import { ownedListing, photoLimitOf } from './listing.service';
@@ -26,12 +26,12 @@ export const uploadPhoto = async (deps: Deps, user: User, listingId: string, byt
   const rotate = info.format === 'jpeg' ? rotationFor(readJpegOrientation(bytes)) : 0;
   let variants;
   try {
-    variants = await photonProcessor.process({ bytes, rotate, watermarkText: site.domain });
+    variants = await sharpProcessor.process({ bytes, rotate, watermarkText: site.domain });
   } catch (error) {
     console.error('[photo] processing failed', error);
     return err('processing_failed');
   }
-  const store = r2PhotoStore(deps.env.PHOTOS);
+  const store = deps.photos;
   const photoId = newId(now.getTime());
   await Promise.all(variants.map((v) => store.put(photoKey(listingId, photoId, v.name), v.bytes, 'image/jpeg')));
   const full = variants.find((v) => v.name === 'full')!;
@@ -49,7 +49,7 @@ export const deletePhoto = async (deps: Deps, user: User, listingId: string, pho
   if (!photo || photo.listingId !== listingId) return err('not_found');
   await deletePhotoRow(deps.db, photoId);
   await syncPhotoSummary(deps.db, listingId, deps.clock.now());
-  if (photo.storage === 'r2') deps.waitUntil(r2PhotoStore(deps.env.PHOTOS).delete(PHOTO_VARIANTS.map((v) => photoKey(listingId, photoId, v))));
+  if (photo.storage === 'r2') deps.waitUntil(deps.photos.delete(PHOTO_VARIANTS.map((v) => photoKey(listingId, photoId, v))));
   return ok(undefined);
 };
 

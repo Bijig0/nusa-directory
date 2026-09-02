@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import type { Db } from '../client';
+import { changesOf, type Db } from '../client';
 import { devices, reveals, wallets, walletLedger, favorites, type Device, type Wallet } from '../schema';
 import { newId } from '../../../domain/ids';
 
@@ -37,7 +37,7 @@ export const hasReveal = async (db: Db, walletId: string, listingId: string): Pr
 /** Inserts a reveal row; returns false when this wallet already revealed the listing. */
 export const insertRevealIfNew = async (db: Db, id: string, walletId: string, listingId: string, kind: 'free' | 'credit' | 'owner' | 'admin' | 'merged', now: Date): Promise<boolean> => {
   const r = await db.run(sql`INSERT OR IGNORE INTO reveals (id, wallet_id, listing_id, kind, created_at) VALUES (${id}, ${walletId}, ${listingId}, ${kind}, ${now.getTime()})`);
-  return Number(r.meta.changes ?? 0) === 1;
+  return changesOf(r) === 1;
 };
 
 export const deleteReveal = (db: Db, id: string) => db.delete(reveals).where(eq(reveals.id, id));
@@ -45,12 +45,12 @@ export const deleteReveal = (db: Db, id: string) => db.delete(reveals).where(eq(
 /** Atomically spends one credit; false when the balance was already zero. */
 export const spendCredit = async (db: Db, walletId: string, now: Date): Promise<boolean> => {
   const r = await db.run(sql`UPDATE wallets SET balance = balance - 1, updated_at = ${now.getTime()} WHERE id = ${walletId} AND balance >= 1`);
-  return Number(r.meta.changes ?? 0) === 1;
+  return changesOf(r) === 1;
 };
 
 export const markFreeRevealUsed = async (db: Db, deviceId: string, now: Date): Promise<boolean> => {
   const r = await db.run(sql`UPDATE devices SET free_reveal_used_at = ${now.getTime()} WHERE id = ${deviceId} AND free_reveal_used_at IS NULL`);
-  return Number(r.meta.changes ?? 0) === 1;
+  return changesOf(r) === 1;
 };
 
 export const addLedger = (db: Db, entry: { walletId: string; delta: number; reason: (typeof walletLedger.$inferInsert)['reason']; refType?: string; refId?: string }, now: Date) =>
@@ -61,7 +61,7 @@ export const creditWallet = (db: Db, walletId: string, credits: number, now: Dat
 
 export const toggleFavorite = async (db: Db, walletId: string, listingId: string, now: Date): Promise<boolean> => {
   const deleted = await db.run(sql`DELETE FROM favorites WHERE wallet_id = ${walletId} AND listing_id = ${listingId}`);
-  if (Number(deleted.meta.changes ?? 0) === 1) return false;
+  if (changesOf(deleted) === 1) return false;
   await db.insert(favorites).values({ walletId, listingId, createdAt: now });
   return true;
 };

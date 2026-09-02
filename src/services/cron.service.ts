@@ -1,5 +1,6 @@
 import { and, eq, lt, lte, isNull } from 'drizzle-orm';
-import { makeDeps, type Deps } from '../infra/env';
+import type { Deps } from '../infra/env';
+import { changesOf } from '../infra/db/client';
 import { listings, otpCodes, sessions } from '../infra/db/schema';
 import { expirePendingOrders } from '../infra/db/repos/orders';
 import { site } from '../../site.config';
@@ -45,13 +46,7 @@ export const runHourly = async (deps: Deps): Promise<CronReport> => {
 
   const otps = await db.delete(otpCodes).where(lt(otpCodes.expiresAt, new Date(ts - 86_400_000))).run();
   const sess = await db.delete(sessions).where(lt(sessions.expiresAt, now)).run();
-  const report = { expiredListings: Number(expired.meta.changes ?? 0), expiredOrders: Number(orders.meta.changes ?? 0), reminders, purgedOtps: Number(otps.meta.changes ?? 0), purgedSessions: Number(sess.meta.changes ?? 0) };
+  const report = { expiredListings: changesOf(expired), expiredOrders: changesOf(orders), reminders, purgedOtps: changesOf(otps), purgedSessions: changesOf(sess) };
   console.log('[cron]', JSON.stringify(report));
   return report;
-};
-
-/** Entry used by the Worker `scheduled` handler. */
-export const runScheduled = async (env: Env, now: Date): Promise<void> => {
-  const deps = makeDeps(env, undefined, { now: () => now });
-  await runHourly(deps);
 };
