@@ -20,6 +20,29 @@ if (url.startsWith('libsql://') && !token) {
 }
 if (url.startsWith('file:')) mkdirSync(url.slice(5).replace(/[^/]+$/, '') || '.', { recursive: true });
 const client = createClient({ url, authToken: token });
-await migrate(drizzle(client), { migrationsFolder: './migrations' });
+try {
+  await client.execute('SELECT 1');
+} catch (error) {
+  console.error(`Cannot reach the database at ${url.replace(/\/\/.*@/, '//')}: ${describe(error)}`);
+  console.error('Checks: TURSO_DATABASE_URL must be the libsql:// URL of the database, and TURSO_AUTH_TOKEN a *database* token from its page (not the platform/API token).');
+  process.exit(1);
+}
+try {
+  await migrate(drizzle(client), { migrationsFolder: './migrations' });
+} catch (error) {
+  console.error(`Migration failed: ${describe(error)}`);
+  process.exit(1);
+}
+
+function describe(error: unknown): string {
+  const parts: string[] = [];
+  let e: unknown = error;
+  for (let i = 0; i < 5 && e; i++) {
+    const o = e as { message?: string; status?: number; code?: string; cause?: unknown };
+    parts.push([o.code, o.status ? `HTTP ${o.status}` : undefined, o.message?.split('\n')[0]].filter(Boolean).join(' '));
+    e = o.cause;
+  }
+  return parts.filter(Boolean).join(' <- ');
+}
 const tables = await client.execute("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'");
 console.log(`migrated ${url} (${tables.rows[0]?.n} tables)`);
