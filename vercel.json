@@ -7,5 +7,8 @@
     }
   ],
   "buildCommand": "bun run db:migrate && bun run build",
-  "installCommand": "bun install"
+  "installCommand": "bun install",
+  "regions": [
+    "hnd1"
+  ]
 }
