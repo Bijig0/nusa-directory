@@ -1,4 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [{ "path": "/api/cron", "schedule": "0 20 * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 20 * * *"
+    }
+  ],
+  "buildCommand": "bun run db:migrate && bun run build",
+  "installCommand": "bun install"
 }

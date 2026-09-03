@@ -60,8 +60,8 @@ CHROME_PATH=/path/to/chrome bun run e2e   # Playwright; starts `bun run dev` its
    turso db create nusa-directory
    turso db show nusa-directory --url        # → TURSO_DATABASE_URL (libsql://…)
    turso db tokens create nusa-directory     # → TURSO_AUTH_TOKEN
-   TURSO_DATABASE_URL=libsql://… TURSO_AUTH_TOKEN=… bun run db:migrate
    ```
+   Migrations run automatically during every Vercel build (`vercel.json` → `buildCommand`), so no manual migration step is needed.
 2. **R2 bucket**: Cloudflare dashboard → R2 → *Manage R2 API tokens* → token with *Object Read & Write*. Note the account id, access key id and secret.
    Then `R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… R2_BUCKET=escort-directory-photos bun run r2:setup` creates the bucket and verifies a round-trip.
 3. **Import the repo in Vercel** (Add New → Project → your GitHub repo). Framework preset: Astro. Root directory: the folder containing this README if it is inside a monorepo. Build command `bun run build`, install command `bun install` (or leave the defaults; Vercel detects Bun from `bun.lock`). Node.js version 22.
@@ -77,7 +77,8 @@ CHROME_PATH=/path/to/chrome bun run e2e   # Playwright; starts `bun run dev` its
 9. **Google** (optional): OAuth 2.0 Web client with authorised redirect URI `https://your-domain/auth/google/callback`.
 10. **Admins**: `ADMIN_IDENTITIES` is a comma-separated list of E.164 phone numbers and/or emails; anyone signing in with one of them gets `/admin/`.
 11. **Cron**: `vercel.json` schedules `/api/cron` daily at 20:00 UTC (03:00 WIB). Vercel Hobby only allows daily crons; on Pro change it to `0 * * * *` for hourly expiry and reminders. The endpoint requires `Authorization: Bearer $CRON_SECRET`, which Vercel adds automatically.
-12. **Seed the production taxonomy** (cities, areas, categories, services, products) once: temporarily set `ENVIRONMENT=development` and `SEED_TOKEN` on a preview deployment, run `BASE_URL=https://<preview-url> SEED_TOKEN=… bun run seed`, then remove them. The seed wipes every table, so never run it against a live database with real data.
+12. **Seed the production taxonomy** (cities, areas, categories, services, products) once: set `SEED_TOKEN` to a random string in Vercel, redeploy, run
+    `BASE_URL=https://your-domain SEED_TOKEN=… bun run setup:taxonomy`, then delete the variable. This endpoint only inserts when the tables are empty and never deletes data (the dev-only `bun run seed` is the one that wipes everything and adds fake listings).
 13. **Search Console**: submit `https://your-domain/sitemap-index.xml`.
 
 ## Monetisation defaults (editable in Admin → Pricing)

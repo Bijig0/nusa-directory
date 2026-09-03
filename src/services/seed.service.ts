@@ -42,6 +42,25 @@ export interface SeedSummary {
   users: number;
 }
 
+/** Production-safe: inserts cities, areas, categories, services and products only when those tables are empty. */
+export const seedTaxonomyIfEmpty = async (deps: Deps): Promise<{ seeded: boolean; cities: number; areas: number }> => {
+  const { db } = deps;
+  const now = deps.clock.now();
+  const existing = await db.select({ id: cities.id }).from(cities).limit(1);
+  if (existing.length > 0) return { seeded: false, cities: 0, areas: 0 };
+  const chunk = <T>(rows: readonly T[], size: number): T[][] => Array.from({ length: Math.ceil(rows.length / size) }, (_, i) => rows.slice(i * size, (i + 1) * size));
+  type Insertable = { values: (rows: never) => { run: () => Promise<unknown> } };
+  const insertAll = async (table: Insertable, rows: readonly unknown[], columns: number) => {
+    for (const part of chunk(rows, Math.max(1, Math.floor(95 / columns)))) await table.values(part as never).run();
+  };
+  await insertAll(db.insert(categories), categorySeeds.map((c) => ({ id: c.id, slug: c.slug, nameId: c.nameId, nameEn: c.nameEn, descId: c.descId, descEn: c.descEn, sortOrder: c.sortOrder })), 7);
+  await insertAll(db.insert(cities), citySeeds.map((c) => ({ id: c.id, slug: c.slug, nameId: c.nameId, nameEn: c.nameEn ?? c.nameId, province: c.province, lat: c.lat, lng: c.lng, sortOrder: c.sortOrder, isActive: true })), 9);
+  await insertAll(db.insert(areas), citySeeds.flatMap((c) => c.areas.map((a, i) => ({ id: `area_${c.slug}_${a.slug}`.replaceAll('-', '_'), cityId: c.id, slug: a.slug, nameId: a.nameId, nameEn: a.nameEn ?? a.nameId, sortOrder: i, isActive: true }))), 7);
+  await insertAll(db.insert(servicesCatalog), serviceSeeds.map((s) => ({ id: s.id, slug: s.slug, nameId: s.nameId, nameEn: s.nameEn, categoryScope: s.scope ? [...s.scope] : null, sortOrder: s.sortOrder })), 6);
+  await insertAll(db.insert(products), productSeeds.map((p) => ({ ...p, isActive: true, updatedAt: now })), 10);
+  return { seeded: true, cities: citySeeds.length, areas: citySeeds.reduce((n, c) => n + c.areas.length, 0) };
+};
+
 export const runSeed = async (deps: Deps): Promise<SeedSummary> => {
   const { db } = deps;
   const now = deps.clock.now();
