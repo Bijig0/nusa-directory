@@ -4,8 +4,9 @@ import { err, ok, type Result } from '../domain/result';
 import { listingInputSchema, expiryFrom, tierOf, photoLimitFor, type ValidListing } from '../domain/listing';
 import { newId, newShortId } from '../domain/ids';
 import { slugify } from '../domain/slug';
-import { findListingById } from '../infra/db/repos/listings';
-import { claimPhone, countActiveOfOwner, insertListing, listingsOfOwner, releasePhoneIfUnused, replaceListingServices, updateListing } from '../infra/db/repos/listing-write';
+import { findListingById, listingPhotosOf } from '../infra/db/repos/listings';
+import { claimPhone, countActiveOfOwner, deletePhotosOfListing, insertListing, listingsOfOwner, releasePhoneIfUnused, replaceListingServices, syncPhotoSummary, updateListing } from '../infra/db/repos/listing-write';
+import { photoObjectKeys } from '../infra/storage/r2';
 import { loadGeo, findArea, categoryById, cityById } from '../infra/db/repos/geo';
 import type { Listing, User } from '../infra/db/schema';
 
@@ -134,10 +135,24 @@ export const renewListing = async (deps: Deps, user: User, id: string): Promise<
   return ok((await findListingById(deps.db, id))!);
 };
 
+/**
+ * Drops a listing's photo rows and queues deletion of their stored files, so nothing of a removed
+ * listing stays reachable through `/img/…` (the row check) or the bucket itself.
+ */
+export const purgeListingPhotos = async (deps: Deps, listingId: string): Promise<void> => {
+  const photos = await listingPhotosOf(deps.db, listingId);
+  if (photos.length === 0) return;
+  await deletePhotosOfListing(deps.db, listingId);
+  await syncPhotoSummary(deps.db, listingId, deps.clock.now());
+  const keys = photos.filter((p) => p.storage === 'r2').flatMap((p) => photoObjectKeys(listingId, p.id));
+  if (keys.length > 0) deps.waitUntil(deps.photos.delete(keys));
+};
+
 export const removeListing = async (deps: Deps, user: User, id: string, reason = 'owner'): Promise<Result<Listing, ListingError>> => {
   const owned = await ownedListing(deps, user, id);
   if (!owned.ok) return owned;
   await updateListing(deps.db, id, { status: 'removed', removedReason: reason, updatedAt: deps.clock.now() });
+  await purgeListingPhotos(deps, id);
   await releasePhoneIfUnused(deps.db, owned.value.phoneE164, user.id);
   return ok((await findListingById(deps.db, id))!);
 };

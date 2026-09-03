@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../domain/result';
 import { readImageInfo, readJpegOrientation, rotationFor, MAX_UPLOAD_BYTES, MAX_PIXELS } from '../domain/images';
 import { newId } from '../domain/ids';
 import { sharpProcessor } from '../infra/images/sharp';
-import { photoKey, PHOTO_VARIANTS } from '../infra/storage/r2';
+import { photoKey, photoObjectKeys } from '../infra/storage/r2';
 import { deletePhotoRow, findPhoto, insertPhoto, nextPhotoPosition, reorderPhotos, syncPhotoSummary } from '../infra/db/repos/listing-write';
 import { listingPhotosOf } from '../infra/db/repos/listings';
 import { ownedListing, photoLimitOf } from './listing.service';
@@ -49,7 +49,7 @@ export const deletePhoto = async (deps: Deps, user: User, listingId: string, pho
   if (!photo || photo.listingId !== listingId) return err('not_found');
   await deletePhotoRow(deps.db, photoId);
   await syncPhotoSummary(deps.db, listingId, deps.clock.now());
-  if (photo.storage === 'r2') deps.waitUntil(deps.photos.delete(PHOTO_VARIANTS.map((v) => photoKey(listingId, photoId, v))));
+  if (photo.storage === 'r2') deps.waitUntil(deps.photos.delete(photoObjectKeys(listingId, photoId)));
   return ok(undefined);
 };
 

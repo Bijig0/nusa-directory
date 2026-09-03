@@ -1,11 +1,13 @@
 import type { APIRoute } from 'astro';
 import { eq, and } from 'drizzle-orm';
-import { listingPhotos } from '../../../../infra/db/schema';
+import { listingPhotos, listings } from '../../../../infra/db/schema';
 import { photoKey, PHOTO_VARIANTS, type PhotoVariant } from '../../../../infra/storage/r2';
 
 export const prerender = false;
 
 const IMMUTABLE = 'public, max-age=31536000, s-maxage=31536000, immutable';
+/** Misses are cached briefly so a purged or unknown photo cannot be hammered, yet a fresh upload shows up soon. */
+const NOT_FOUND = { 'Cache-Control': 'public, max-age=300' };
 
 const placeholderSvg = (color: string, width: number, height: number, label: string): string =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
@@ -17,12 +19,15 @@ export const GET: APIRoute = async ({ params, locals }) => {
   const { listingId, photoId, variant } = params;
   if (!listingId || !photoId || !variant || !(PHOTO_VARIANTS as readonly string[]).includes(variant)) return new Response(null, { status: 404 });
   const { db, photos } = locals.deps;
+  // Joined on listings: a removed listing's photos must not stay reachable by direct URL, even when
+  // its rows or objects outlive the removal.
   const photo = await db
-    .select({ storage: listingPhotos.storage, color: listingPhotos.colorHex, width: listingPhotos.width, height: listingPhotos.height })
+    .select({ storage: listingPhotos.storage, color: listingPhotos.colorHex, width: listingPhotos.width, height: listingPhotos.height, listingStatus: listings.status })
     .from(listingPhotos)
+    .innerJoin(listings, eq(listings.id, listingPhotos.listingId))
     .where(and(eq(listingPhotos.id, photoId), eq(listingPhotos.listingId, listingId)))
     .get();
-  if (!photo) return new Response(null, { status: 404, headers: { 'Cache-Control': 'public, max-age=300' } });
+  if (!photo || photo.listingStatus === 'removed') return new Response(null, { status: 404, headers: NOT_FOUND });
 
   if (photo.storage === 'placeholder') {
     const scale = variant === 'thumb' ? 0.5 : variant === 'card' ? 1 : 2;
@@ -31,7 +36,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   const object = await photos.get(photoKey(listingId, photoId, variant as PhotoVariant));
-  if (!object) return new Response(null, { status: 404 });
+  if (!object) return new Response(null, { status: 404, headers: NOT_FOUND });
   const headers = new Headers({ 'Content-Type': object.contentType || 'image/jpeg', 'Cache-Control': IMMUTABLE });
   if (object.etag) headers.set('ETag', object.etag);
   return new Response(object.body as BodyInit, { headers });

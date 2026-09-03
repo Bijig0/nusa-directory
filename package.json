@@ -14,6 +14,7 @@
     "db:migrate": "bun run scripts/migrate.ts",
     "seed": "bun run scripts/seed.ts",
     "r2:setup": "bun run scripts/r2-setup.ts",
+    "photos:purge-removed": "bun run scripts/purge-removed-photos.ts",
     "setup:taxonomy": "bun run scripts/setup-taxonomy.ts"
   },
   "dependencies": {

@@ -6,6 +6,9 @@ export const PHOTO_VARIANTS: readonly PhotoVariant[] = ['thumb', 'card', 'full']
 export const photoKey = (listingId: string, photoId: string, variant: PhotoVariant): string =>
   `photos/${listingId}/${photoId}/${variant}.jpg`;
 
+/** Every stored object of one photo (one key per variant). */
+export const photoObjectKeys = (listingId: string, photoId: string): string[] => PHOTO_VARIANTS.map((v) => photoKey(listingId, photoId, v));
+
 export interface StoredObject {
   body: ReadableStream<Uint8Array> | Uint8Array;
   contentType: string;

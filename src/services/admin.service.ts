@@ -4,6 +4,7 @@ import { newId } from '../domain/ids';
 import { applyBoost } from '../domain/boost';
 import { findListingById } from '../infra/db/repos/listings';
 import { updateListing, insertBoost } from '../infra/db/repos/listing-write';
+import { purgeListingPhotos } from './listing.service';
 import { audit, moderateReview, resolveReport, resolveReportsForListing, updateProductPrice, setAreaActive, setCityActive, upsertArea } from '../infra/db/repos/moderation';
 import { banUser, unbanUser, deleteSessionsOfUser, findUser } from '../infra/db/repos/auth';
 import { addLedger, creditWallet } from '../infra/db/repos/wallets';
@@ -41,6 +42,7 @@ export const adminListingAction = async (deps: Deps, adminId: string, listingId:
     const patch = patchFor(action);
     if (!patch) return l;
     await updateListing(deps.db, l.id, { ...patch, updatedAt: now });
+    if (action === 'remove') await purgeListingPhotos(deps, l.id);
     if (action === 'approve' || action === 'remove' || action === 'hide') await resolveReportsForListing(deps.db, l.id, adminId, now);
   }
   await audit(deps.db, { actorUserId: adminId, actorType: 'admin', action: `listing.${action}`, targetType: 'listing', targetId: l.id, before: { status: l.status, moderation: l.moderation, verified: l.verified } }, now);

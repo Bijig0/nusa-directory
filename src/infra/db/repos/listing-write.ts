@@ -37,6 +37,7 @@ export const releasePhoneIfUnused = async (db: Db, phoneE164: string, userId: st
 export const insertPhoto = (db: Db, row: typeof listingPhotos.$inferInsert) => db.insert(listingPhotos).values(row);
 export const findPhoto = (db: Db, id: string): Promise<ListingPhoto | undefined> => db.select().from(listingPhotos).where(eq(listingPhotos.id, id)).get();
 export const deletePhotoRow = (db: Db, id: string) => db.delete(listingPhotos).where(eq(listingPhotos.id, id));
+export const deletePhotosOfListing = (db: Db, listingId: string) => db.delete(listingPhotos).where(eq(listingPhotos.listingId, listingId));
 export const nextPhotoPosition = async (db: Db, listingId: string): Promise<number> => {
   const row = await db.select({ m: sql<number>`coalesce(max(${listingPhotos.position}), -1)` }).from(listingPhotos).where(eq(listingPhotos.listingId, listingId)).get();
   return Number(row?.m ?? -1) + 1;
