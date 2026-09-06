@@ -92,7 +92,9 @@ export const loadCategoryPage = async (
   const areasWithCounts = areas.map((a) => ({ area: a, count: countFor(counts, (r) => r.categoryId === category.id && r.areaId === a.id) })).sort((a, b) => b.count - a.count);
   const seo = landingSeo({
     locale, brand: site.name, now, city: name(locale, city), category: name(locale, category), area: area ? name(locale, area) : undefined,
-    count: result.total, areaNames: areasWithCounts.filter((a) => a.count > 0).map((a) => name(locale, a.area)),
+    count: result.total,
+    // Areas that already have ads lead; before any ad exists, name the city's areas so the copy still reads naturally.
+    areaNames: (areasWithCounts.some((a) => a.count > 0) ? areasWithCounts.filter((a) => a.count > 0) : areasWithCounts).map((a) => name(locale, a.area)),
   });
   const basePath = localizedPath(locale, area ? areaPath(city.slug, category.slug, area.slug) : categoryPath(city.slug, category.slug));
   const crumbs: Crumb[] = [
