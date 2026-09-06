@@ -54,6 +54,8 @@
   "browse.results": "{count} iklan",
   "browse.noResults": "Belum ada iklan yang cocok.",
   "browse.noResultsHint": "Coba hapus filter atau lihat area lain.",
+  "browse.emptyCity": "Belum ada iklan di {city}.",
+  "browse.emptyCityHint": "Jadilah yang pertama. Pasang iklan gratis dalam 2 menit, nomor Anda tetap dilindungi.",
   "browse.searchPlaceholder": "Cari nama, layanan, area…",
   "browse.page": "Halaman {page} dari {total}",
   "browse.prev": "Sebelumnya",

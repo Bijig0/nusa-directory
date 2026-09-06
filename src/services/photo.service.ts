@@ -26,7 +26,7 @@ export const uploadPhoto = async (deps: Deps, user: User, listingId: string, byt
   const rotate = info.format === 'jpeg' ? rotationFor(readJpegOrientation(bytes)) : 0;
   let variants;
   try {
-    variants = await sharpProcessor.process({ bytes, rotate, watermarkText: site.domain });
+    variants = await sharpProcessor.process({ bytes, rotate, watermarkText: site.watermark });
   } catch (error) {
     console.error('[photo] processing failed', error);
     return err('processing_failed');

@@ -54,6 +54,8 @@
   "browse.results": "{count} ads",
   "browse.noResults": "No ads match yet.",
   "browse.noResultsHint": "Try removing filters or pick another area.",
+  "browse.emptyCity": "No ads in {city} yet.",
+  "browse.emptyCityHint": "Be the first. Posting is free, takes 2 minutes, and your number stays protected.",
   "browse.searchPlaceholder": "Search name, service, area…",
   "browse.page": "Page {page} of {total}",
   "browse.prev": "Previous",

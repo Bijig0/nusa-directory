@@ -58,6 +58,8 @@ export interface CategoryPage {
   pagination: Pagination;
   seo: PageSeo;
   indexable: boolean;
+  /** True when the visitor narrowed the results (filters, search or sort), so an empty page means "nothing matches" rather than "nothing posted here yet". */
+  hasFilters: boolean;
   crumbs: readonly Crumb[];
   jsonLd: readonly Record<string, unknown>[];
   areasWithCounts: readonly { area: Area; count: number }[];
@@ -103,6 +105,7 @@ export const loadCategoryPage = async (
   return {
     city, category, area, geo, filters, items: result.items, pagination, seo, crumbs, basePath, now,
     indexable: isIndexable(filters),
+    hasFilters: !isIndexable(filters),
     jsonLd: [breadcrumbList(crumbs), ...(listItems.length ? [itemList(listItems)] : [])],
     areasWithCounts,
     otherCategories: geo.categories.filter((c) => c.id !== category.id).map((c) => ({ category: c, count: countFor(counts, (r) => r.categoryId === c.id) })),

@@ -16,6 +16,17 @@ describe('landingSeo', () => {
     expect(seo.title).toBe('Escorts in Nagoya, Batam — 3 Ads September 2026 | Nusa');
     expect(seo.intro).toContain('Nagoya, Batam');
   });
+  it('drops the count from every field when a page has no ads yet', () => {
+    for (const locale of ['id', 'en'] as const) {
+      const seo = landingSeo({ locale, brand: 'Nusa', now, city: 'Batam', category: 'Pendamping', count: 0, areaNames: ['Nagoya'] });
+      for (const field of [seo.title, seo.description, seo.intro]) expect(field).not.toMatch(/0/);
+      expect(seo.title).toContain('Batam');
+      expect(seo.h1).toContain('Pendamping');
+    }
+    const area = landingSeo({ locale: 'id', brand: 'Nusa', now, city: 'Batam', category: 'Pendamping', area: 'Nagoya', count: 0, areaNames: [] });
+    expect(area.title).not.toMatch(/0/);
+    expect(area.intro).toContain('Nagoya');
+  });
   it('falls back gracefully with no areas', () => {
     const seo = landingSeo({ locale: 'id', brand: 'Nusa', now, city: 'Batam', count: 0, areaNames: [] });
     expect(seo.intro).toContain('pusat kota');

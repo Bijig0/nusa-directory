@@ -63,7 +63,11 @@ const now = deps.clock.now();
         <a href={localizedPath(locale, categoryPath(page.city.slug, firstCategory.slug))} class="text-sm text-brand-600 hover:underline">{t('city.viewAll')} →</a>
       </div>
       {page.latest.length === 0 ? (
-        <p class="card p-6 text-center text-sm text-zinc-500">{t('browse.noResults')}</p>
+        <div class="card p-8 text-center">
+          <p class="font-semibold">{t('browse.emptyCity', { city: cityName })}</p>
+          <p class="mt-1 text-sm text-zinc-500">{t('browse.emptyCityHint')}</p>
+          <a href="/dashboard/listings/new/" class="btn-primary mt-4">{t('browse.postCta', { city: cityName })}</a>
+        </div>
       ) : (
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {page.latest.map((item) => <ListingCard item={item} now={now} />)}

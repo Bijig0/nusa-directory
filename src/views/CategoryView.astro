@@ -46,8 +46,8 @@ const canonical = `${origin}${page.hrefFor(page.pagination.page)}`;
 
     {page.items.length === 0 ? (
       <div class="card mt-6 p-10 text-center">
-        <p class="font-semibold">{t('browse.noResults')}</p>
-        <p class="mt-1 text-sm text-zinc-500">{t('browse.noResultsHint')}</p>
+        <p class="font-semibold">{page.hasFilters ? t('browse.noResults') : t('browse.emptyCity', { city: cityName })}</p>
+        <p class="mt-1 text-sm text-zinc-500">{page.hasFilters ? t('browse.noResultsHint') : t('browse.emptyCityHint')}</p>
         <a href="/dashboard/listings/new/" class="btn-primary mt-4">{t('browse.postCta', { city: cityName })}</a>
       </div>
     ) : (

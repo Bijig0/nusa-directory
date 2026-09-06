@@ -12,6 +12,8 @@ export interface SeoTemplate {
 }
 
 type Kind = 'city' | 'category' | 'area' | 'listing';
+/** Used instead of the counted templates when a landing page has no active ads yet. */
+type EmptyKind = 'city' | 'category' | 'area';
 
 const id: Record<Kind, SeoTemplate> = {
   city: {
@@ -37,6 +39,27 @@ const id: Record<Kind, SeoTemplate> = {
     description: '{excerpt}',
     h1: '{title}',
     intro: '',
+  },
+};
+
+const idEmpty: Record<EmptyKind, SeoTemplate> = {
+  city: {
+    title: 'Pendamping, Pijat & Layanan Dewasa di {city} — Pasang Iklan Gratis | {brand}',
+    description: 'Direktori pendamping, pijat panggilan, dan layanan dewasa di {city}, termasuk area {areas}. Pasang iklan gratis, nomor kontak dilindungi.',
+    h1: 'Iklan pendamping & pijat di {city}',
+    intro: '{brand} baru hadir di {city}. Jadilah yang pertama memasang iklan di area {topAreas}; pasang gratis dalam 2 menit dan nomor Anda hanya dibuka oleh pengunjung serius.',
+  },
+  category: {
+    title: '{category} di {city} — Pasang Iklan Gratis {month} {year} | {brand}',
+    description: 'Cari atau pasang iklan {category} di {city}. Area: {areas}. Foto diberi watermark, nomor telepon dilindungi, kontak WhatsApp langsung.',
+    h1: '{category} di {city}',
+    intro: 'Belum ada iklan {category} di {city} saat ini. Pasang iklan gratis dan jadilah yang pertama tampil di area {topAreas}.',
+  },
+  area: {
+    title: '{category} di {area}, {city} — Pasang Iklan Gratis | {brand}',
+    description: 'Cari atau pasang iklan {category} di area {area}, {city}. Kontak WhatsApp langsung, tanpa perantara.',
+    h1: '{category} di {area}, {city}',
+    intro: 'Belum ada iklan {category} di {area}, {city}. Lihat area lain di {city} atau pasang iklan gratis untuk tampil di sini.',
   },
 };
 
@@ -67,7 +90,31 @@ const en: Record<Kind, SeoTemplate> = {
   },
 };
 
-export const seoTemplate = (locale: Locale, kind: Kind): SeoTemplate => (locale === 'en' ? en[kind] : id[kind]);
+const enEmpty: Record<EmptyKind, SeoTemplate> = {
+  city: {
+    title: 'Escorts, Massage & Adult Services in {city} — Post a Free Ad | {brand}',
+    description: 'Directory of escorts, outcall massage and adult services in {city}, covering {areas}. Post a free ad; phone numbers stay protected.',
+    h1: 'Escort & massage ads in {city}',
+    intro: '{brand} has just launched in {city}. Be the first to post in {topAreas}; it takes 2 minutes, is free, and your number is only revealed to serious visitors.',
+  },
+  category: {
+    title: '{category} in {city} — Post a Free Ad {month} {year} | {brand}',
+    description: 'Find or post {category} ads in {city}. Areas: {areas}. Watermarked photos, protected phone numbers, direct WhatsApp contact.',
+    h1: '{category} in {city}',
+    intro: 'No {category} ads in {city} yet. Post a free ad and be the first to appear in {topAreas}.',
+  },
+  area: {
+    title: '{category} in {area}, {city} — Post a Free Ad | {brand}',
+    description: 'Find or post {category} ads in the {area} area of {city}. Direct WhatsApp contact, no middlemen.',
+    h1: '{category} in {area}, {city}',
+    intro: 'No {category} ads in {area}, {city} yet. Browse other areas in {city} or post a free ad to appear here.',
+  },
+};
+
+export const seoTemplate = (locale: Locale, kind: Kind, count = 1): SeoTemplate => {
+  if (count === 0 && kind !== 'listing') return locale === 'en' ? enEmpty[kind] : idEmpty[kind];
+  return locale === 'en' ? en[kind] : id[kind];
+};
 
 const MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

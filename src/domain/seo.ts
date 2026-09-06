@@ -34,7 +34,7 @@ const fill = (template: string, params: Record<string, string | number>): string
 /** Builds title/description/H1/intro for city, category and area landing pages. */
 export const landingSeo = (ctx: SeoContext): PageSeo => {
   const kind = ctx.area ? 'area' : ctx.category ? 'category' : 'city';
-  const tpl = seoTemplate(ctx.locale, kind);
+  const tpl = seoTemplate(ctx.locale, kind, ctx.count);
   const params = {
     brand: ctx.brand,
     city: ctx.city,

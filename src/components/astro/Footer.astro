@@ -49,6 +49,6 @@ const legal = [['/syarat/', t('footer.terms')], ['/privasi/', t('footer.privacy'
     </div>
   </div>
   <div class="border-t border-zinc-200 py-4 text-center text-xs text-zinc-500 dark:border-zinc-800">
-    {t('footer.copyright', { year: new Date().getFullYear(), brand: site.name })} · <a href={`mailto:${site.supportEmail}`} class="hover:text-brand-600">{site.supportEmail}</a>
+    {t('footer.copyright', { year: new Date().getFullYear(), brand: site.name })}{site.supportEmail && <> · <a href={`mailto:${site.supportEmail}`} class="hover:text-brand-600">{site.supportEmail}</a></>}
   </div>
 </footer>
